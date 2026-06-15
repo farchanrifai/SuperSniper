@@ -15,24 +15,18 @@ final class OCRManager: Sendable {
             return
         }
         
-        performOCR(on: cgImage, completion: completion)
+        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+        performOCR(with: handler, completion: completion)
     }
     
     /// Recognizes text in an image file at the specified URL.
     func recognizeText(from url: URL, completion: @escaping @MainActor @Sendable (Result<String, Error>) -> Void) {
-        guard let image = NSImage(contentsOf: url),
-              let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            Task { @MainActor in
-                completion(.failure(NSError(domain: "OCRManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to load image from path \(url.path)"])))
-            }
-            return
-        }
-        
-        performOCR(on: cgImage, completion: completion)
+        let handler = VNImageRequestHandler(url: url, options: [:])
+        performOCR(with: handler, completion: completion)
     }
     
-    /// Internal helper to execute VNRecognizeTextRequest on a CGImage.
-    private func performOCR(on cgImage: CGImage, completion: @escaping @MainActor @Sendable (Result<String, Error>) -> Void) {
+    /// Internal helper to execute VNRecognizeTextRequest.
+    private func performOCR(with handler: VNImageRequestHandler, completion: @escaping @MainActor @Sendable (Result<String, Error>) -> Void) {
         let request = VNRecognizeTextRequest { request, error in
             if let error = error {
                 Task { @MainActor in
@@ -62,8 +56,6 @@ final class OCRManager: Sendable {
         // Configure for highest accuracy
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
-        
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
         
         // Execute request asynchronously on a background queue
         DispatchQueue.global(qos: .userInitiated).async {
