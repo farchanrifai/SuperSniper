@@ -58,7 +58,7 @@ class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         // Wrap HistoryListView in a clear background and give it rounded corners
         let hostingView = NSHostingView(
             rootView: HistoryListView()
-                .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
+                .glassEffect()
                 .cornerRadius(12)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)

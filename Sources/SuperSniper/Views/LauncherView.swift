@@ -129,10 +129,7 @@ struct LauncherView: View {
                 .opacity(isCompact ? 0 : 1)
                 .clipped()
             }
-            .background(
-                VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
-                    .opacity(0.8)
-            )
+            .glassEffect()
             .clipShape(RoundedRectangle(cornerRadius: isCompact ? 32 : 16, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: isCompact ? 32 : 16, style: .continuous)
