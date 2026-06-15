@@ -1,7 +1,31 @@
 import SwiftUI
 import AppKit
 
-// Removed legacy VisualEffectView wrapper
+class NonInteractiveVisualEffectView: NSVisualEffectView {
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        return nil
+    }
+}
+
+// MARK: - Visual Effect View Wrapper
+struct VisualEffectView: NSViewRepresentable {
+    let material: NSVisualEffectView.Material
+    let blendingMode: NSVisualEffectView.BlendingMode
+    
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let visualEffectView = NonInteractiveVisualEffectView()
+        visualEffectView.material = material
+        visualEffectView.blendingMode = blendingMode
+        visualEffectView.state = .active
+        return visualEffectView
+    }
+    
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+        nsView.material = material
+        nsView.blendingMode = blendingMode
+    }
+}
+
 // MARK: - HUD SwiftUI View
 struct HUDView: View {
     @State var text: String
@@ -88,8 +112,10 @@ struct HUDView: View {
         }
         .padding(14)
         .frame(width: 420, height: 160)
-        .glassEffect()
-        .cornerRadius(12)
+        .background(
+            VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
+                .cornerRadius(12)
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.white.opacity(0.15), lineWidth: 1)
@@ -149,8 +175,10 @@ struct ToastView: View {
             .foregroundColor(.white)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .glassEffect()
-            .cornerRadius(8)
+            .background(
+                VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
+                    .cornerRadius(8)
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.white.opacity(0.15), lineWidth: 1)
