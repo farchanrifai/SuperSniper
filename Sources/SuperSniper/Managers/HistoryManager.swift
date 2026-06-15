@@ -79,7 +79,20 @@ class HistoryManager: ObservableObject {
             return
         }
         
-        // 2. Check for Image
+        // 2. Check for Text (Priority over Image because apps like Excel put both Text and Image on clipboard)
+        if let text = pasteboard.string(forType: .string) {
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                let charCount = text.count
+                let wordCount = text.split { $0.isWhitespace }.count
+                
+                let item = HistoryItem(id: UUID(), type: .text, text: text, imageFileName: nil, fileURL: nil, timestamp: timestamp, sourceApp: activeApp, copyCount: 1, charactersCount: charCount, wordsCount: wordCount)
+                insertItem(item)
+                return
+            }
+        }
+        
+        // 3. Check for Image
         if let image = NSImage(pasteboard: pasteboard),
            let tiff = image.tiffRepresentation,
            let bitmap = NSBitmapImageRep(data: tiff),
@@ -95,19 +108,6 @@ class HistoryManager: ObservableObject {
             } catch {
                 print("Failed to save clipboard image: \(error)")
             }
-        }
-        
-        // 3. Check for Text
-        if let text = pasteboard.string(forType: .string) {
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return }
-            
-            let charCount = text.count
-            let wordCount = text.split { $0.isWhitespace }.count
-            
-            let item = HistoryItem(id: UUID(), type: .text, text: text, imageFileName: nil, fileURL: nil, timestamp: timestamp, sourceApp: activeApp, copyCount: 1, charactersCount: charCount, wordsCount: wordCount)
-            insertItem(item)
-            return
         }
     }
     
