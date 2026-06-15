@@ -213,6 +213,13 @@ class HUDPanel: NSPanel {
             self.setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)
         }
     }
+    
+    func positionAtCursor(width: CGFloat, height: CGFloat) {
+        let mouseLoc = NSEvent.mouseLocation
+        let x = mouseLoc.x + 10
+        let y = mouseLoc.y - height - 10
+        self.setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)
+    }
 }
 
 // MARK: - HUD Display Manager
@@ -274,6 +281,36 @@ class HUDManager {
             }
             
             // Auto-hide toast after 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.hideHUD()
+            }
+        }
+    }
+    
+    /// Display a small toast notification near the mouse cursor.
+    func showToastAtCursor(with text: String) {
+        DispatchQueue.main.async {
+            self.hideHUDImmediately()
+            
+            let toastView = ToastView(text: text)
+            let hostingView = NSHostingView(rootView: toastView)
+            
+            let size = hostingView.fittingSize
+            let width = size.width
+            let height = size.height
+            
+            let panel = HUDPanel(contentView: hostingView, width: width, height: height)
+            self.hudPanel = panel
+            
+            panel.positionAtCursor(width: width, height: height)
+            panel.alphaValue = 0
+            panel.makeKeyAndOrderFront(nil)
+            
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.25
+                panel.animator().alphaValue = 1.0
+            }
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                 self?.hideHUD()
             }

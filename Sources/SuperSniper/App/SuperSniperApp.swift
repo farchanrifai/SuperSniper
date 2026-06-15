@@ -260,9 +260,16 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 DispatchQueue.main.async {
                     switch result {
                     case .success(let text):
-                        HUDManager.shared.showHUD(with: text)
+                        if text.isEmpty {
+                            HUDManager.shared.showToastAtCursor(with: "No text found")
+                        } else {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(text, forType: .string)
+                            HistoryManager.shared.addEntry(text: text)
+                            HUDManager.shared.showToastAtCursor(with: "Copied \(text.count) chars!")
+                        }
                     case .failure(let error):
-                        HUDManager.shared.showHUD(with: "OCR Error: \(error.localizedDescription)")
+                        HUDManager.shared.showToastAtCursor(with: "OCR Error: \(error.localizedDescription)")
                     }
                     self.cleanupTempFile()
                 }
