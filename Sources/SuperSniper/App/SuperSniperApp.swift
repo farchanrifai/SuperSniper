@@ -244,7 +244,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let tempURL = self.tempCaptureURL
         
         CaptureManager.shared.captureInteractive(outputURL: tempURL) { [weak self] success in
-            guard success else {
+            guard success, FileManager.default.fileExists(atPath: tempURL.path) else {
                 HUDManager.shared.showToast(with: "Canceled")
                 self?.cleanupTempFile()
                 return
@@ -279,7 +279,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let targetDir = URL(fileURLWithPath: prefs.savePath)
         
         CaptureManager.shared.captureInteractive(outputURL: tempURL) { [weak self] success in
-            guard success else {
+            guard success, FileManager.default.fileExists(atPath: tempURL.path) else {
                 HUDManager.shared.showToast(with: "Canceled")
                 self?.cleanupTempFile()
                 return
@@ -307,7 +307,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let targetDir = URL(fileURLWithPath: prefs.savePath)
         
         CaptureManager.shared.captureFullScreen(outputURL: tempURL) { [weak self] success in
-            guard success else {
+            guard success, FileManager.default.fileExists(atPath: tempURL.path) else {
                 HUDManager.shared.showToast(with: "Canceled")
                 self?.cleanupTempFile()
                 return
