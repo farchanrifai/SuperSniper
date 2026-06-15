@@ -1,14 +1,24 @@
 import AppKit
 import SwiftUI
 
+class ClipboardPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+    
+    // Allow Esc key to close the window
+    override func cancelOperation(_ sender: Any?) {
+        ClipboardWindowController.shared.hideWindow()
+    }
+}
+
 @MainActor
 class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     static let shared = ClipboardWindowController()
     
     private init() {
-        let panel = NSPanel(
+        let panel = ClipboardPanel(
             contentRect: NSRect(x: 0, y: 0, width: 750, height: 450),
-            styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
+            styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
