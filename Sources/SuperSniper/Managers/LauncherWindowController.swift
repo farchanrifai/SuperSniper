@@ -38,14 +38,14 @@ class LauncherWindowController: NSWindowController, NSWindowDelegate {
     
     private init() {
         let panel = LauncherPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 750, height: 450),
+            contentRect: NSRect(x: 0, y: 0, width: 700, height: 600),
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false // Shadow is now handled by SwiftUI so it matches the dynamic shape
         
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -79,12 +79,13 @@ class LauncherWindowController: NSWindowController, NSWindowDelegate {
     func showWindow() {
         guard let window = self.window else { return }
         
-        // Center on the active screen
+        // Center horizontally, and position ~25% from the top (like Spotlight)
         if let screen = NSScreen.main {
             let screenRect = screen.visibleFrame
+            let yPos = screenRect.maxY - (screenRect.height * 0.25) - 600
             let newOrigin = NSPoint(
-                x: screenRect.midX - window.frame.width / 2,
-                y: screenRect.midY - window.frame.height / 2
+                x: screenRect.midX - 350,
+                y: yPos
             )
             window.setFrameOrigin(newOrigin)
         }

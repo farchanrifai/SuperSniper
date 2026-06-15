@@ -16,68 +16,90 @@ struct LauncherView: View {
         LauncherItem(name: "Unlock PDF", subtitle: "Remove password encryption", url: nil, icon: NSImage(systemSymbolName: "lock.open.fill", accessibilityDescription: nil), type: .tool)
     ]
     
+    var isCompact: Bool {
+        searchQuery.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
-            // Top Search Bar
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 20, weight: .regular))
-                    .foregroundColor(.secondary)
+            VStack(spacing: 0) {
+                // Top Search Bar
+                HStack(spacing: 12) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 22, weight: .regular))
+                        .foregroundColor(.primary.opacity(0.8))
+                    
+                    TextField("Spotlight Search", text: $searchQuery)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 26, weight: .light))
+                        .focused($isSearchFocused)
+                        .onChange(of: searchQuery) { _ in
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                updateSearch()
+                            }
+                        }
+                        .onSubmit { executeSelected() }
+                        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherWindowDidOpen"))) { _ in
+                            searchQuery = ""
+                            updateSearch()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                isSearchFocused = true
+                            }
+                        }
+                        .onAppear {
+                            updateSearch()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                isSearchFocused = true
+                            }
+                        }
+                }
+                .padding(.horizontal, 20)
+                .frame(height: 64)
                 
-                TextField("Search Apps & Commands...", text: $searchQuery)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 24, weight: .regular))
-                    .focused($isSearchFocused)
-                    .onChange(of: searchQuery) { _ in updateSearch() }
-                    .onSubmit { executeSelected() }
-                    .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherWindowDidOpen"))) { _ in
-                        searchQuery = ""
-                        updateSearch()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            isSearchFocused = true
+                if !isCompact {
+                    Divider()
+                        .padding(.horizontal, 16)
+                        .opacity(0.5)
+                    
+                    ScrollViewReader { proxy in
+                        List(selection: $selectedItem) {
+                            ForEach(filteredItems, id: \.self) { item in
+                                LauncherRowView(item: item, isSelected: selectedItem == item)
+                                    .tag(item)
+                                    .listRowInsets(EdgeInsets())
+                                    .listRowBackground(Color.clear)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 4)
+                            }
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                        .frame(maxHeight: 400)
+                        .onChange(of: selectedItem) { newValue in
+                            if let newId = newValue {
+                                withAnimation(.easeInOut(duration: 0.1)) {
+                                    proxy.scrollTo(newId)
+                                }
+                            }
                         }
                     }
-                    .onAppear {
-                        updateSearch()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            isSearchFocused = true
-                        }
-                    }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            
-            Divider()
-            
-            ScrollViewReader { proxy in
-                List(selection: $selectedItem) {
-                    ForEach(filteredItems, id: \.self) { item in
-                        LauncherRowView(item: item, isSelected: selectedItem == item)
-                            .tag(item)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                    }
-                }
-                .scrollContentBackground(.hidden)
-                .onChange(of: selectedItem) { newValue in
-                    if let newId = newValue {
-                        withAnimation(.easeInOut(duration: 0.1)) {
-                            proxy.scrollTo(newId)
-                        }
-                    }
+                    .padding(.vertical, 8)
                 }
             }
-            .padding(.vertical, 8)
+            // Use .popover material to match Light/Dark mode gracefully like Spotlight
+            .background(VisualEffectView(material: .popover, blendingMode: .behindWindow))
+            .clipShape(RoundedRectangle(cornerRadius: isCompact ? 32 : 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: isCompact ? 32 : 16, style: .continuous)
+                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.15), radius: 24, x: 0, y: 12)
+            
+            // This spacer pushes the search bar to the top of the 600pt invisible window bounding box
+            Spacer(minLength: 0)
         }
-        .frame(width: 750, height: 450)
-        .background(VisualEffectView(material: .popover, blendingMode: .behindWindow))
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.15), lineWidth: 1)
-        )
+        .frame(width: 700, height: 600, alignment: .top)
+        
         // Key Routing
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherKeyPressed"))) { notification in
             if let keyCode = notification.object as? UInt16 {
@@ -92,6 +114,8 @@ struct LauncherView: View {
         var results: [LauncherItem] = []
         
         if trimmed.isEmpty {
+            // When compact, we don't show the list, but we still calculate results
+            // in case we need them immediately when expanding
             results.append(contentsOf: nativeTools)
             results.append(contentsOf: searchManager.installedApps.prefix(20))
         } else {
@@ -124,7 +148,7 @@ struct LauncherView: View {
         }
         
         // Navigation
-        guard !filteredItems.isEmpty else { return }
+        guard !filteredItems.isEmpty && !isCompact else { return }
         let currentIndex = filteredItems.firstIndex(where: { $0 == selectedItem }) ?? -1
         
         if keyCode == 125 { // Down
@@ -141,14 +165,16 @@ struct LauncherView: View {
     }
     
     private func executeSelected() {
-        guard let item = selectedItem else { return }
+        // If they press enter while compact, execute the top hit
+        let itemToExecute = isCompact ? filteredItems.first : selectedItem
+        
+        guard let item = itemToExecute else { return }
         
         LauncherWindowController.shared.hideWindow()
         
         if item.type == .application, let url = item.url {
             NSWorkspace.shared.open(url)
         } else if item.type == .tool {
-            // Trigger PDF tool execution
             NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.executeTool"), object: item.name)
         }
     }
@@ -159,27 +185,27 @@ struct LauncherRowView: View {
     let isSelected: Bool
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             if let icon = item.icon {
                 Image(nsImage: icon)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 36, height: 36)
             } else {
                 Rectangle()
                     .fill(Color.secondary.opacity(0.2))
-                    .frame(width: 32, height: 32)
-                    .cornerRadius(6)
+                    .frame(width: 36, height: 36)
+                    .cornerRadius(8)
             }
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.primary)
                 
                 if let subtitle = item.subtitle {
                     Text(subtitle)
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.system(size: 12, weight: .regular))
                         .foregroundColor(.secondary)
                 }
             }
@@ -188,14 +214,14 @@ struct LauncherRowView: View {
             
             if isSelected {
                 Text(item.type == .application ? "Open ↵" : "Run ↵")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white)
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(isSelected ? Color.accentColor : Color.clear)
-        .cornerRadius(8)
+        .cornerRadius(10)
         .contentShape(Rectangle())
     }
 }
