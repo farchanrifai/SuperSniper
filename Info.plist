@@ -24,5 +24,7 @@
     <true/>
     <key>NSScreenCaptureUsageDescription</key>
     <string>Sniper needs screen recording permissions to capture regions and full screen for OCR and image saving.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>SuperSniper needs permission to control Finder to get the currently selected files.</string>
 </dict>
 </plist>

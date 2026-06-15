@@ -8,8 +8,8 @@ class LauncherPanel: NSPanel {
     // Intercept Arrow Keys, Return, and Esc so they are globally routed
     override func sendEvent(_ event: NSEvent) {
         if event.type == .keyDown {
-            // 125 = Down Arrow, 126 = Up Arrow, 36 = Return, 53 = Esc
-            if [125, 126, 36, 53].contains(event.keyCode) {
+            // 125 = Down Arrow, 126 = Up Arrow, 36 = Return, 53 = Esc, 48 = Tab
+            if [125, 126, 36, 53, 48].contains(event.keyCode) {
                 NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherKeyPressed"), object: event.keyCode)
                 return // Consume the event completely
             }
