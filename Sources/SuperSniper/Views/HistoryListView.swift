@@ -220,8 +220,20 @@ struct HistoryListView: View {
                 )
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.clipboardWindowDidOpen"))) { _ in
+            // Slight delay ensures the window has become key before requesting focus
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                isSearchFocused = true
+            }
+            if selectedItem == nil {
+                selectedItem = filteredItems.first
+            }
+        }
         .onAppear {
-            isSearchFocused = true
+            // Initial load
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isSearchFocused = true
+            }
             if selectedItem == nil {
                 selectedItem = filteredItems.first
             }

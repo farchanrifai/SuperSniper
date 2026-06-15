@@ -75,6 +75,8 @@ class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+        
+        NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.clipboardWindowDidOpen"), object: nil)
     }
     
     func hideWindow() {
