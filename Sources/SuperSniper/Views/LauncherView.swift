@@ -192,6 +192,24 @@ struct LauncherView: View {
             guard let item = selectedItem, let url = item.url else { return }
             PreviewManager.shared.togglePreview(for: url)
         }
+        .background(
+            Group {
+                Button("") {
+                    guard let item = selectedItem, item.url != nil else { return }
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                        showActionsMenu.toggle()
+                    }
+                }
+                .keyboardShortcut("k", modifiers: .command)
+                
+                Button("") {
+                    guard let item = selectedItem, let url = item.url else { return }
+                    PreviewManager.shared.togglePreview(for: url)
+                }
+                .keyboardShortcut("y", modifiers: .command)
+            }
+            .opacity(0)
+        )
     }
     
     @ViewBuilder
