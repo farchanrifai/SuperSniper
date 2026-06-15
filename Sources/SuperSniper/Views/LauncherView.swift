@@ -129,10 +129,10 @@ struct LauncherView: View {
                 .opacity(isCompact ? 0 : 1)
                 .clipped()
             }
-            .glassEffect(in: RoundedRectangle(cornerRadius: isCompact ? 32 : 16, style: .continuous))
-            .clipShape(RoundedRectangle(cornerRadius: isCompact ? 32 : 16, style: .continuous))
+            .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: isCompact ? 32 : 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(Color.white.opacity(0.2), lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(0.15), radius: 24, x: 0, y: 12)
