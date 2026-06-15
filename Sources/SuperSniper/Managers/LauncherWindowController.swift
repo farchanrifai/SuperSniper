@@ -16,6 +16,16 @@ class LauncherPanel: NSPanel {
             
             // Handle standard Edit shortcuts because borderless windows lack a Main Menu
             if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command {
+                // Intercept Cmd+K (40) and Cmd+Y (16)
+                if event.keyCode == 40 {
+                    NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherCmdKPressed"), object: nil)
+                    return
+                }
+                if event.keyCode == 16 {
+                    NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherCmdYPressed"), object: nil)
+                    return
+                }
+                
                 let handled: Bool
                 switch event.charactersIgnoringModifiers?.lowercased() {
                 case "x": handled = NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: self)

@@ -12,6 +12,7 @@ struct LauncherView: View {
     
     @State private var mathResult: MathManager.MathResult?
     @State private var isVisible = false
+    @State private var showActionsMenu = false
     
     // Built-in tools
     let nativeTools = [
@@ -73,6 +74,7 @@ struct LauncherView: View {
                             transaction.disablesAnimations = true
                             withTransaction(transaction) {
                                 isVisible = false
+                                showActionsMenu = false
                                 searchQuery = ""
                                 activeToolContext = nil
                                 updateSearch()
@@ -86,6 +88,8 @@ struct LauncherView: View {
                             }
                         }
                         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherWindowWillClose"))) { _ in
+                            showActionsMenu = false
+                            PreviewManager.shared.closePreview()
                             withAnimation(.easeOut(duration: 0.1)) {
                                 isVisible = false
                             }
@@ -167,12 +171,40 @@ struct LauncherView: View {
             Spacer(minLength: 0)
         }
         .frame(width: 700, height: 600, alignment: .top)
+        .overlay(
+            Group {
+                if showActionsMenu, let item = selectedItem {
+                    HStack {
+                        Spacer()
+                        ActionsMenuView(item: item, onClose: {
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                showActionsMenu = false
+                            }
+                        })
+                        .padding(.trailing, 20)
+                        .padding(.top, 100)
+                    }
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
+            }
+        )
         
         // Key Routing
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherKeyPressed"))) { notification in
+            if showActionsMenu { return } // Let ActionsMenuView handle it
             if let keyCode = notification.object as? UInt16 {
                 handleRawKey(keyCode)
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherCmdKPressed"))) { _ in
+            guard let item = selectedItem, item.url != nil else { return }
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                showActionsMenu.toggle()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherCmdYPressed"))) { _ in
+            guard let item = selectedItem, let url = item.url else { return }
+            PreviewManager.shared.togglePreview(for: url)
         }
     }
     
