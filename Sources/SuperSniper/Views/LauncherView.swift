@@ -56,16 +56,16 @@ struct LauncherView: View {
                 .padding(.horizontal, 20)
                 .frame(height: 64)
                 
-                if !isCompact {
+                VStack(spacing: 0) {
                     Divider()
                         .padding(.horizontal, 16)
                         .opacity(0.5)
                     
                     ScrollViewReader { proxy in
-                        List(selection: $selectedItem) {
+                        List {
                             ForEach(filteredItems, id: \.self) { item in
                                 LauncherRowView(item: item, isSelected: selectedItem == item)
-                                    .tag(item)
+                                    .id(item)
                                     .listRowInsets(EdgeInsets())
                                     .listRowBackground(Color.clear)
                                     .padding(.horizontal, 12)
@@ -74,7 +74,6 @@ struct LauncherView: View {
                         }
                         .listStyle(.plain)
                         .scrollContentBackground(.hidden)
-                        .frame(maxHeight: 400)
                         .onChange(of: selectedItem) { newValue in
                             if let newId = newValue {
                                 withAnimation(.easeInOut(duration: 0.1)) {
@@ -85,6 +84,9 @@ struct LauncherView: View {
                     }
                     .padding(.vertical, 8)
                 }
+                .frame(height: isCompact ? 0 : 400)
+                .opacity(isCompact ? 0 : 1)
+                .clipped()
             }
             // Use .popover material to match Light/Dark mode gracefully like Spotlight
             .background(VisualEffectView(material: .popover, blendingMode: .behindWindow))
