@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Carbon
+import PDFKit
 
 @MainActor
 class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -40,6 +41,14 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         
         // Apply initial activation policy (regular vs. accessory) and open window if regular
         applyActivationPolicy(initialLaunch: true)
+        
+        // Listen for Tool execution requests from the Launcher
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleToolExecution(_:)),
+            name: Notification.Name("com.farchan.sniper.executeTool"),
+            object: nil
+        )
         
         print("SuperSniper application launched and background shortcuts registered.")
     }
@@ -193,6 +202,16 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
             modifiers: prefs.chModifier,
             action: {
                 ClipboardWindowController.shared.toggleWindow()
+            }
+        )
+        
+        // Register Launcher (ID: 5)
+        HotKeyManager.shared.register(
+            id: 5,
+            keyCode: prefs.launcherKeyCode,
+            modifiers: prefs.launcherModifier,
+            action: {
+                LauncherWindowController.shared.toggleWindow()
             }
         )
     }
@@ -397,6 +416,104 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
     
     @objc private func menuQuit() {
         NSApplication.shared.terminate(nil)
+    }
+    
+    // MARK: - Tool Handlers
+    @objc private func handleToolExecution(_ notification: Notification) {
+        guard let toolName = notification.object as? String else { return }
+        
+        switch toolName {
+        case "Merge PDFs":
+            executeMergePDFs()
+        case "Split PDF":
+            executeSplitPDF()
+        case "Protect PDF":
+            executeProtectPDF()
+        case "Unlock PDF":
+            executeUnlockPDF()
+        default:
+            break
+        }
+    }
+    
+    private func executeMergePDFs() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = true
+        panel.allowedContentTypes = [.pdf]
+        panel.message = "Select multiple PDFs to merge"
+        
+        if panel.runModal() == .OK {
+            do {
+                let output = try PDFManager.shared.mergePDFs(urls: panel.urls)
+                NSWorkspace.shared.activateFileViewerSelecting([output])
+                HUDManager.shared.showHUD(with: "Successfully merged PDFs")
+            } catch {
+                HUDManager.shared.showHUD(with: "Failed to merge PDFs: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func executeSplitPDF() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.pdf]
+        panel.message = "Select a PDF to split in half"
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                // Split in half for demo purposes
+                let doc = try PDFDocument(url: url)
+                let mid = (doc?.pageCount ?? 2) / 2
+                
+                let (out1, out2) = try PDFManager.shared.splitPDF(url: url, afterPage: mid - 1)
+                NSWorkspace.shared.activateFileViewerSelecting([out1, out2])
+                HUDManager.shared.showHUD(with: "Successfully split PDF")
+            } catch {
+                HUDManager.shared.showHUD(with: "Failed to split PDF: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func executeProtectPDF() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.pdf]
+        panel.message = "Select a PDF to protect"
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                let output = try PDFManager.shared.protectPDF(url: url, password: "password")
+                NSWorkspace.shared.activateFileViewerSelecting([output])
+                HUDManager.shared.showHUD(with: "Saved protected PDF (Password: password)")
+            } catch {
+                HUDManager.shared.showHUD(with: "Failed to protect PDF: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func executeUnlockPDF() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.pdf]
+        panel.message = "Select a protected PDF to unlock"
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                let output = try PDFManager.shared.unlockPDF(url: url, password: "password")
+                NSWorkspace.shared.activateFileViewerSelecting([output])
+                HUDManager.shared.showHUD(with: "Successfully unlocked PDF")
+            } catch {
+                HUDManager.shared.showHUD(with: "Failed to unlock PDF: \(error.localizedDescription)")
+            }
+        }
     }
     
     // MARK: - Helpers

@@ -30,6 +30,9 @@ class Preferences: ObservableObject {
     private let kChModifier = "com.farchan.sniper.chModifier"
     private let kChKeyCode = "com.farchan.sniper.chKeyCode"
     
+    private let kLauncherModifier = "com.farchan.sniper.launcherModifier"
+    private let kLauncherKeyCode = "com.farchan.sniper.launcherKeyCode"
+    
     @Published var savePath: String {
         didSet { UserDefaults.standard.set(savePath, forKey: kSavePath) }
     }
@@ -102,6 +105,19 @@ class Preferences: ObservableObject {
         }
     }
     
+    @Published var launcherModifier: UInt32 {
+        didSet {
+            UserDefaults.standard.set(launcherModifier, forKey: kLauncherModifier)
+            NotificationCenter.default.post(name: .shortcutsDidChange, object: nil)
+        }
+    }
+    @Published var launcherKeyCode: UInt32 {
+        didSet {
+            UserDefaults.standard.set(launcherKeyCode, forKey: kLauncherKeyCode)
+            NotificationCenter.default.post(name: .shortcutsDidChange, object: nil)
+        }
+    }
+    
     private init() {
         // Defaults
         let defaultPath = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first?.path ?? NSHomeDirectory()
@@ -126,6 +142,10 @@ class Preferences: ObservableObject {
         // Clipboard history shortcut default: Option + C (2048, 8)
         self.chModifier = UserDefaults.standard.object(forKey: kChModifier) as? UInt32 ?? UInt32(optionKey)
         self.chKeyCode = UserDefaults.standard.object(forKey: kChKeyCode) as? UInt32 ?? 8
+        
+        // Launcher shortcut default: Option + Space
+        self.launcherModifier = UserDefaults.standard.object(forKey: kLauncherModifier) as? UInt32 ?? UInt32(optionKey)
+        self.launcherKeyCode = UserDefaults.standard.object(forKey: kLauncherKeyCode) as? UInt32 ?? 49
     }
 }
 
@@ -421,6 +441,15 @@ struct PreferencesView: View {
                             color: .purple,
                             modifier: $prefs.chModifier,
                             keyCode: $prefs.chKeyCode
+                        )
+                        
+                        Divider()
+                        
+                        ShortcutRecorderView(
+                            label: "App & Tools Launcher",
+                            color: .blue,
+                            modifier: $prefs.launcherModifier,
+                            keyCode: $prefs.launcherKeyCode
                         )
                     }
                     .padding(.horizontal, 16)
