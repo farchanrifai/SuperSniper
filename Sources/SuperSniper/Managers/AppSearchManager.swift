@@ -12,6 +12,7 @@ struct LauncherItem: Identifiable, Hashable {
     enum ItemType {
         case application
         case tool
+        case calculatorHistory
     }
 }
 

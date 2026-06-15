@@ -9,15 +9,21 @@ struct LauncherView: View {
     @State private var selectedItem: LauncherItem?
     @State private var activeToolContext: LauncherItem?
     
+    @State private var mathResult: MathManager.MathResult?
+    
     // Built-in tools
     let nativeTools = [
         LauncherItem(name: "Merge PDFs", subtitle: "Combine multiple PDF files", url: nil, icon: NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: nil), type: .tool),
         LauncherItem(name: "Split PDF", subtitle: "Extract pages from a PDF", url: nil, icon: NSImage(systemSymbolName: "scissors", accessibilityDescription: nil), type: .tool),
         LauncherItem(name: "Protect PDF", subtitle: "Add password encryption", url: nil, icon: NSImage(systemSymbolName: "lock.fill", accessibilityDescription: nil), type: .tool),
-        LauncherItem(name: "Unlock PDF", subtitle: "Remove password encryption", url: nil, icon: NSImage(systemSymbolName: "lock.open.fill", accessibilityDescription: nil), type: .tool)
+        LauncherItem(name: "Unlock PDF", subtitle: "Remove password encryption", url: nil, icon: NSImage(systemSymbolName: "lock.open.fill", accessibilityDescription: nil), type: .tool),
+        LauncherItem(name: "Calculator History", subtitle: "View past calculations and conversions", url: nil, icon: NSImage(systemSymbolName: "clock.arrow.circlepath", accessibilityDescription: nil), type: .tool)
     ]
     
     var isCompact: Bool {
+        if let tool = activeToolContext, tool.name == "Calculator History" {
+            return false // We want to show the list for history
+        }
         if activeToolContext != nil { return true }
         return searchQuery.trimmingCharacters(in: .whitespaces).isEmpty
     }
@@ -84,12 +90,27 @@ struct LauncherView: View {
                     ScrollViewReader { proxy in
                         List {
                             ForEach(filteredItems, id: \.self) { item in
-                                LauncherRowView(item: item, isSelected: selectedItem == item)
-                                    .id(item)
-                                    .listRowInsets(EdgeInsets())
-                                    .listRowBackground(Color.clear)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 4)
+                                if item.name == "CalculatorResultSentinel", let res = mathResult {
+                                    CalculatorResultView(result: res)
+                                        .id(item)
+                                        .listRowInsets(EdgeInsets())
+                                        .listRowBackground(Color.clear)
+                                        .padding(.bottom, 8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(selectedItem == item ? Color.accentColor : Color.clear, lineWidth: 3)
+                                                .padding(.horizontal, 16)
+                                                .padding(.top, 16)
+                                                .padding(.bottom, 8)
+                                        )
+                                } else {
+                                    LauncherRowView(item: item, isSelected: selectedItem == item)
+                                        .id(item)
+                                        .listRowInsets(EdgeInsets())
+                                        .listRowBackground(Color.clear)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 4)
+                                }
                             }
                         }
                         .listStyle(.plain)
@@ -134,6 +155,7 @@ struct LauncherView: View {
         if let tool = activeToolContext {
             if tool.name == "Merge PDFs" { return "Enter new file name (optional)..." }
             if tool.name == "Split PDF" { return "Enter page count (e.g. 5) or size (e.g. 10MB)..." }
+            if tool.name == "Calculator History" { return "Search history..." }
             return "Enter argument..."
         }
         return "Spotlight Search"
@@ -142,7 +164,22 @@ struct LauncherView: View {
     private func updateSearch() {
         let trimmed = searchQuery.trimmingCharacters(in: .whitespaces).lowercased()
         
+        if let tool = activeToolContext, tool.name == "Calculator History" {
+            mathResult = nil
+            let historyItems = CalculatorHistoryManager.shared.history.map { entry in
+                LauncherItem(name: entry.expression, subtitle: entry.formattedResult, url: nil, icon: NSImage(systemSymbolName: "number.square", accessibilityDescription: nil), type: .calculatorHistory)
+            }
+            if trimmed.isEmpty {
+                filteredItems = historyItems
+            } else {
+                filteredItems = historyItems.filter { $0.name.lowercased().contains(trimmed) || ($0.subtitle?.lowercased().contains(trimmed) ?? false) }
+            }
+            selectedItem = filteredItems.first
+            return
+        }
+        
         var results: [LauncherItem] = []
+        mathResult = MathManager.shared.evaluate(query: trimmed)
         
         if trimmed.isEmpty {
             // When compact, we don't show the list, but we still calculate results
@@ -150,6 +187,11 @@ struct LauncherView: View {
             results.append(contentsOf: nativeTools)
             results.append(contentsOf: searchManager.installedApps.prefix(20))
         } else {
+            if mathResult != nil {
+                let calcItem = LauncherItem(name: "CalculatorResultSentinel", subtitle: nil, url: nil, icon: nil, type: .tool)
+                results.append(calcItem)
+            }
+            
             let toolsMatch = nativeTools.filter { $0.name.lowercased().contains(trimmed) }
             let appsMatch = searchManager.search(query: trimmed)
             results.append(contentsOf: toolsMatch)
@@ -223,6 +265,23 @@ struct LauncherView: View {
         
         LauncherWindowController.shared.hideWindow()
         
+        if item.name == "CalculatorResultSentinel", let res = mathResult {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(res.formattedResult, forType: .string)
+            CalculatorHistoryManager.shared.addEntry(expression: res.expression, result: res.result, formattedResult: res.formattedResult)
+            HUDManager.shared.showHUD(with: "Copied \(res.formattedResult)")
+            return
+        }
+        
+        if item.type == .calculatorHistory {
+            if let resultText = item.subtitle {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(resultText, forType: .string)
+                HUDManager.shared.showHUD(with: "Copied \(resultText)")
+            }
+            return
+        }
+        
         if item.type == .application, let url = item.url {
             NSWorkspace.shared.open(url)
         } else if item.type == .tool {
@@ -265,7 +324,7 @@ struct LauncherRowView: View {
             Spacer()
             
             if isSelected {
-                Text(item.type == .application ? "Open ↵" : "Run ↵")
+                Text(item.type == .application ? "Open ↵" : (item.type == .calculatorHistory ? "Copy ↵" : "Run ↵"))
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white)
             }
