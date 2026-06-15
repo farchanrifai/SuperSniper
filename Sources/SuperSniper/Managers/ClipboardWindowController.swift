@@ -43,6 +43,9 @@ class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
         
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]

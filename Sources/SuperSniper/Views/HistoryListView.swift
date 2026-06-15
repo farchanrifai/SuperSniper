@@ -81,7 +81,6 @@ struct HistoryListView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
-                .background(Color(NSColor.windowBackgroundColor).opacity(0.8))
                 
                 Divider()
                 
@@ -111,8 +110,9 @@ struct HistoryListView: View {
                                 .scrollContentBackground(.hidden)
                                 .onChange(of: selectedItem) { newValue in
                                     if let newId = newValue?.id {
+                                        // Omitting anchor allows SwiftUI to scroll just enough to make the item visible at the bottom or top
                                         withAnimation(.easeInOut(duration: 0.1)) {
-                                            proxy.scrollTo(newId, anchor: .center)
+                                            proxy.scrollTo(newId)
                                         }
                                     }
                                 }
@@ -120,7 +120,6 @@ struct HistoryListView: View {
                         }
                     }
                     .frame(width: 280)
-                    .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
                     
                     Divider()
                     
@@ -195,7 +194,6 @@ struct HistoryListView: View {
                                 MetadataRow(title: "Last copied", value: relativeTimeString(selected.timestamp))
                             }
                             .padding(.vertical, 8)
-                            .background(Color(NSColor.controlBackgroundColor).opacity(0.3))
                             
                         } else {
                             VStack {
@@ -213,7 +211,6 @@ struct HistoryListView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .background(Color(NSColor.windowBackgroundColor).opacity(0.5))
                 }
                 
                 Divider()
@@ -243,8 +240,13 @@ struct HistoryListView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Color(NSColor.windowBackgroundColor).opacity(0.9))
             }
+            .background(VisualEffectView(material: .popover, blendingMode: .behindWindow))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+            )
             
             // Actions Menu Overlay
             if showingActionsMenu {
