@@ -59,7 +59,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "scope", accessibilityDescription: "SuperSniper")
+            button.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "SuperSniper")
             button.action = nil
         }
         
@@ -218,8 +218,10 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
             
             let window = NSWindow(contentViewController: hostingController)
             window.title = "SuperSniper"
-            window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
             window.isReleasedWhenClosed = false
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
             window.center()
             self.mainWindow = window
         }
