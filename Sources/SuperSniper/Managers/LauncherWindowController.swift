@@ -18,16 +18,6 @@ class LauncherPanel: NSPanel {
             if event.modifierFlags.contains(.command) {
                 let chars = event.charactersIgnoringModifiers?.lowercased()
                 
-                // Intercept Cmd+K and Cmd+Y
-                if chars == "k" {
-                    NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherCmdKPressed"), object: nil)
-                    return
-                }
-                if chars == "y" {
-                    NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherCmdYPressed"), object: nil)
-                    return
-                }
-                
                 let handled: Bool
                 switch chars {
                 case "x": handled = NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: self)
@@ -41,6 +31,21 @@ class LauncherPanel: NSPanel {
             }
         }
         super.sendEvent(event)
+    }
+    
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.modifierFlags.contains(.command) {
+            let chars = event.charactersIgnoringModifiers?.lowercased()
+            if chars == "k" {
+                NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherCmdKPressed"), object: nil)
+                return true
+            }
+            if chars == "y" {
+                NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherCmdYPressed"), object: nil)
+                return true
+            }
+        }
+        return super.performKeyEquivalent(with: event)
     }
 }
 
