@@ -128,6 +128,11 @@ struct LauncherView: View {
                                         .listRowBackground(Color.clear)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 4)
+                                        .onAppear {
+                                            if item == fileSearchManager.searchResults.last {
+                                                fileSearchManager.loadMore()
+                                            }
+                                        }
                                 }
                             }
                         }

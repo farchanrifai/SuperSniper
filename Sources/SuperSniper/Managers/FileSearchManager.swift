@@ -6,6 +6,7 @@ class FileSearchManager: ObservableObject {
     static let shared = FileSearchManager()
     
     @Published var searchResults: [LauncherItem] = []
+    @Published var resultLimit = 15
     
     private var query: NSMetadataQuery?
     
@@ -15,14 +16,15 @@ class FileSearchManager: ObservableObject {
         query?.stop()
         query = nil
         searchResults = []
+        resultLimit = 15
         
         let trimmed = term.trimmingCharacters(in: .whitespaces)
         if trimmed.isEmpty { return }
         
         let newQuery = NSMetadataQuery()
         
-        // Search for file name matches. We use CONTAINS[cd] for case-insensitive and diacritic-insensitive search.
-        newQuery.predicate = NSPredicate(format: "kMDItemDisplayName CONTAINS[cd] %@", trimmed)
+        // Search for file name matches or file content matches
+        newQuery.predicate = NSPredicate(format: "kMDItemDisplayName CONTAINS[cd] %@ OR kMDItemTextContent CONTAINS[cd] %@", trimmed, trimmed)
         
         // Scope to user's home directory and local computer
         newQuery.searchScopes = [NSMetadataQueryUserHomeScope, NSMetadataQueryLocalComputerScope]
@@ -42,14 +44,22 @@ class FileSearchManager: ObservableObject {
         processResults()
     }
     
+    func loadMore() {
+        guard let query = query else { return }
+        // Only load more if there are more results available
+        if resultLimit < query.resultCount {
+            resultLimit += 15
+            processResults()
+        }
+    }
+    
     private func processResults() {
         guard let query = query else { return }
         query.disableUpdates()
         
         var results: [LauncherItem] = []
         
-        // Limit to top 20 items to keep the UI snappy
-        let maxResults = min(query.resultCount, 20)
+        let maxResults = min(query.resultCount, resultLimit)
         
         for i in 0..<maxResults {
             guard let item = query.result(at: i) as? NSMetadataItem else { continue }
