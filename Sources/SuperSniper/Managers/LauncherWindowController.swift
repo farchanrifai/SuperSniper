@@ -15,7 +15,7 @@ class LauncherPanel: NSPanel {
             }
             
             // Handle standard Edit shortcuts because borderless windows lack a Main Menu
-            if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command {
+            if event.modifierFlags.contains(.command) {
                 // Intercept Cmd+K (40) and Cmd+Y (16)
                 if event.keyCode == 40 {
                     NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherCmdKPressed"), object: nil)
