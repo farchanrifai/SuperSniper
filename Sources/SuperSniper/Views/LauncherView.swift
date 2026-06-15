@@ -73,8 +73,8 @@ struct LauncherView: View {
                                 updateSearch()
                             }
                             
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                                withAnimation(.spring(response: 0.2, dampingFraction: 0.75)) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+                                withAnimation(.easeOut(duration: 0.1)) {
                                     isVisible = true
                                 }
                                 isSearchFocused = true
@@ -149,9 +149,9 @@ struct LauncherView: View {
                     .stroke(Color.white.opacity(0.2), lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(0.15), radius: 24, x: 0, y: 12)
-            .scaleEffect(isVisible ? 1.0 : 0.95)
+            .scaleEffect(x: isVisible ? 1.0 : 0.98, y: 1.0)
             .opacity(isVisible ? 1.0 : 0.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isCompact)
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isCompact)
             
             // This spacer pushes the search bar to the top of the 600pt invisible window bounding box
             Spacer(minLength: 0)
