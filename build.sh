@@ -19,8 +19,11 @@ echo "Copying compiled executable..."
 cp "$RELEASE_BIN" "$MACOS_DIR/SuperSniper"
 chmod +x "$MACOS_DIR/SuperSniper"
 
-echo "Copying Info.plist..."
+echo "Copying Info.plist and Icons..."
 cp "$WORKSPACE_DIR/Info.plist" "$CONTENTS_DIR/Info.plist"
+
+mkdir -p "$CONTENTS_DIR/Resources"
+cp "$WORKSPACE_DIR/AppIcon.icns" "$CONTENTS_DIR/Resources/AppIcon.icns"
 
 echo "Code signing app bundle (ad-hoc) to preserve permissions..."
 codesign --force --deep --sign - "$APP_BUNDLE"

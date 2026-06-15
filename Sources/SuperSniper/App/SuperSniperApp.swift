@@ -59,7 +59,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "crop.badge.viewfinder", accessibilityDescription: "SuperSniper")
+            button.image = NSImage(systemSymbolName: "scope", accessibilityDescription: "SuperSniper")
             button.action = nil
         }
         
