@@ -244,7 +244,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let tempURL = self.tempCaptureURL
         
         CaptureManager.shared.captureInteractive(outputURL: tempURL) { [weak self] success in
-            guard success, FileManager.default.fileExists(atPath: tempURL.path) else {
+            guard success, let self = self, self.isValidCapture(at: tempURL) else {
                 HUDManager.shared.showToast(with: "Canceled")
                 self?.cleanupTempFile()
                 return
@@ -264,7 +264,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     case .failure(let error):
                         HUDManager.shared.showHUD(with: "OCR Error: \(error.localizedDescription)")
                     }
-                    self?.cleanupTempFile()
+                    self.cleanupTempFile()
                 }
             }
         }
@@ -279,7 +279,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let targetDir = URL(fileURLWithPath: prefs.savePath)
         
         CaptureManager.shared.captureInteractive(outputURL: tempURL) { [weak self] success in
-            guard success, FileManager.default.fileExists(atPath: tempURL.path) else {
+            guard success, let self = self, self.isValidCapture(at: tempURL) else {
                 HUDManager.shared.showToast(with: "Canceled")
                 self?.cleanupTempFile()
                 return
@@ -294,7 +294,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             
             _ = CaptureManager.shared.saveToTargetFolder(tempURL: tempURL, targetDirectory: targetDir)
-            self?.cleanupTempFile()
+            self.cleanupTempFile()
         }
     }
     
@@ -307,7 +307,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let targetDir = URL(fileURLWithPath: prefs.savePath)
         
         CaptureManager.shared.captureFullScreen(outputURL: tempURL) { [weak self] success in
-            guard success, FileManager.default.fileExists(atPath: tempURL.path) else {
+            guard success, let self = self, self.isValidCapture(at: tempURL) else {
                 HUDManager.shared.showToast(with: "Canceled")
                 self?.cleanupTempFile()
                 return
@@ -322,7 +322,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             
             _ = CaptureManager.shared.saveToTargetFolder(tempURL: tempURL, targetDirectory: targetDir)
-            self?.cleanupTempFile()
+            self.cleanupTempFile()
         }
     }
     
@@ -380,10 +380,29 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
     
     // MARK: - Helpers
     private func cleanupTempFile() {
-        let path = tempCaptureURL.path
-        if FileManager.default.fileExists(atPath: path) {
-            try? FileManager.default.removeItem(atPath: path)
+        let tempURL = self.tempCaptureURL
+        if FileManager.default.fileExists(atPath: tempURL.path) {
+            do {
+                try FileManager.default.removeItem(at: tempURL)
+            } catch {
+                print("Failed to clean up temp capture file: \(error)")
+            }
         }
+    }
+    
+    private func isValidCapture(at url: URL) -> Bool {
+        guard FileManager.default.fileExists(atPath: url.path) else { return false }
+        do {
+            let attr = try FileManager.default.attributesOfItem(atPath: url.path)
+            // A valid screenshot png will be well over 100 bytes. 
+            // 0-byte files mean the capture was aborted or failed due to permissions.
+            if let size = attr[.size] as? UInt64, size > 100 {
+                return true
+            }
+        } catch {
+            return false
+        }
+        return false
     }
     
     private func shortcutString(modifier: UInt32, keyCode: UInt32) -> String {
