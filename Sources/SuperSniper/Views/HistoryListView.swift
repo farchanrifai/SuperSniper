@@ -33,9 +33,6 @@ struct HistoryListView: View {
                         .onSubmit {
                             pasteSelected()
                         }
-                        .onMoveCommand { direction in
-                            moveSelection(direction: direction)
-                        }
                     
                     Spacer()
                     
@@ -227,6 +224,16 @@ struct HistoryListView: View {
             }
             if selectedItem == nil {
                 selectedItem = filteredItems.first
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.arrowKeyPressed"))) { notification in
+            if let keyCode = notification.object as? UInt16 {
+                // 126 = Up, 125 = Down
+                if keyCode == 126 {
+                    moveSelection(direction: .up)
+                } else if keyCode == 125 {
+                    moveSelection(direction: .down)
+                }
             }
         }
         .onAppear {

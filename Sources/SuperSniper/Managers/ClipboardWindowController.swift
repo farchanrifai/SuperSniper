@@ -5,6 +5,18 @@ class ClipboardPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
     
+    // Intercept Arrow Keys so they always navigate the list even when searching
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown {
+            // 125 = Down Arrow, 126 = Up Arrow, 124 = Right, 123 = Left
+            if event.keyCode == 125 || event.keyCode == 126 {
+                NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.arrowKeyPressed"), object: event.keyCode)
+                return // Consume the event so the TextField doesn't process it
+            }
+        }
+        super.sendEvent(event)
+    }
+    
     // Allow Esc key to close the window
     override func cancelOperation(_ sender: Any?) {
         ClipboardWindowController.shared.hideWindow()
