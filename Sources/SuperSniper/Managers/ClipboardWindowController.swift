@@ -8,10 +8,24 @@ class ClipboardPanel: NSPanel {
     // Intercept Arrow Keys so they always navigate the list even when searching
     override func sendEvent(_ event: NSEvent) {
         if event.type == .keyDown {
-            // 125 = Down Arrow, 126 = Up Arrow, 124 = Right, 123 = Left
+            // 125 = Down Arrow, 126 = Up Arrow
             if event.keyCode == 125 || event.keyCode == 126 {
                 NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.arrowKeyPressed"), object: event.keyCode)
                 return // Consume the event so the TextField doesn't process it
+            }
+            
+            // Handle standard Edit shortcuts because borderless windows lack a Main Menu
+            if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command {
+                let handled: Bool
+                switch event.charactersIgnoringModifiers?.lowercased() {
+                case "x": handled = NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: self)
+                case "c": handled = NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: self)
+                case "v": handled = NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: self)
+                case "a": handled = NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: self)
+                case "z": handled = NSApp.sendAction(Selector(("undo:")), to: nil, from: self)
+                default: handled = false
+                }
+                if handled { return }
             }
         }
         super.sendEvent(event)

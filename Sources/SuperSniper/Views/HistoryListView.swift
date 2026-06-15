@@ -64,21 +64,28 @@ struct HistoryListView: View {
                                 .foregroundColor(.secondary)
                             Spacer()
                         } else {
-                            List(selection: $selectedItem) {
-                                ForEach(filteredItems) { item in
-                                    HistoryRowView(item: item, isSelected: selectedItem?.id == item.id)
-                                        .tag(item)
-                                        .listRowInsets(EdgeInsets(top: 2, leading: 6, bottom: 2, trailing: 6))
-                                        .listRowSeparator(.hidden)
-                                        .listRowBackground(Color.clear)
-                                        .onTapGesture {
-                                            selectedItem = item
+                            ScrollViewReader { proxy in
+                                ScrollView {
+                                    LazyVStack(spacing: 0) {
+                                        ForEach(filteredItems) { item in
+                                            HistoryRowView(item: item, isSelected: selectedItem?.id == item.id)
+                                                .id(item.id)
+                                                .onTapGesture {
+                                                    selectedItem = item
+                                                }
                                         }
+                                    }
+                                    .padding(.vertical, 8)
+                                }
+                                .scrollContentBackground(.hidden)
+                                .onChange(of: selectedItem) { newValue in
+                                    if let newId = newValue?.id {
+                                        withAnimation(.easeInOut(duration: 0.1)) {
+                                            proxy.scrollTo(newId, anchor: .center)
+                                        }
+                                    }
                                 }
                             }
-                            .listStyle(.plain)
-                            .scrollContentBackground(.hidden)
-                            .padding(.vertical, 8)
                         }
                     }
                     .frame(width: 280)
