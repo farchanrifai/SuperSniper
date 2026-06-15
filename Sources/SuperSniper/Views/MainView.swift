@@ -33,32 +33,61 @@ struct MainView: View {
     @StateObject private var navState = NavigationState.shared
     
     var body: some View {
-        NavigationSplitView {
-            List(SidebarTab.allCases, selection: $navState.selectedTab) { tab in
-                HStack(spacing: 10) {
-                    SidebarIcon(name: tab.icon, color: tab.color)
-                    
-                    Text(tab.rawValue)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.primary)
+        HStack(spacing: 0) {
+            // Custom un-collapsible Sidebar
+            VStack(alignment: .leading, spacing: 4) {
+                Text("SuperSniper")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 16)
+                    .padding(.bottom, 8)
+                
+                ForEach(SidebarTab.allCases) { tab in
+                    Button(action: {
+                        navState.selectedTab = tab
+                    }) {
+                        HStack(spacing: 10) {
+                            SidebarIcon(name: tab.icon, color: tab.color)
+                            
+                            Text(tab.rawValue)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(navState.selectedTab == tab ? .white : .primary)
+                            
+                            Spacer()
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(navState.selectedTab == tab ? Color.accentColor : Color.clear)
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .padding(.vertical, 3)
-                .tag(tab) // Critical fix: tag elements to enable list selection bindings
+                
+                Spacer()
             }
-            .listStyle(.sidebar)
-            .navigationTitle("SuperSniper")
-            .frame(minWidth: 180)
-        } detail: {
-            switch navState.selectedTab {
-            case .dashboard:
-                DashboardView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow))
-            case .settings:
-                PreferencesView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow))
+            .padding(.horizontal, 8)
+            .frame(width: 180)
+            .background(VisualEffectView(material: .sidebar, blendingMode: .behindWindow))
+            
+            Divider()
+            
+            // Detail Content
+            ZStack {
+                switch navState.selectedTab {
+                case .dashboard:
+                    DashboardView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .settings:
+                    PreferencesView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow))
         }
         .frame(minWidth: 800, minHeight: 500)
     }
