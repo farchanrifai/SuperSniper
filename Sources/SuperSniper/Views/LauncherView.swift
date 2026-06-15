@@ -181,12 +181,14 @@ struct LauncherView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherCmdKPressed"))) { _ in
+            HUDManager.shared.showHUD(with: "Cmd+K Received")
             guard let item = selectedItem, item.url != nil else { return }
             withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                 showActionsMenu.toggle()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherCmdYPressed"))) { _ in
+            HUDManager.shared.showHUD(with: "Cmd+Y Received")
             guard let item = selectedItem, let url = item.url else { return }
             PreviewManager.shared.togglePreview(for: url)
         }
