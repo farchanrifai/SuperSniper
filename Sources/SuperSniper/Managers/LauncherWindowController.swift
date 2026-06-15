@@ -96,8 +96,17 @@ class LauncherWindowController: NSWindowController, NSWindowDelegate {
         NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherWindowDidOpen"), object: nil)
     }
     
+    private var hideWorkItem: DispatchWorkItem?
+    
     func hideWindow() {
-        self.window?.orderOut(nil)
+        NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherWindowWillClose"), object: nil)
+        
+        hideWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.window?.orderOut(nil)
+        }
+        hideWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
     }
     
     func windowDidResignKey(_ notification: Notification) {

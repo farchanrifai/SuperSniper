@@ -10,6 +10,7 @@ struct LauncherView: View {
     @State private var activeToolContext: LauncherItem?
     
     @State private var mathResult: MathManager.MathResult?
+    @State private var isVisible = false
     
     // Built-in tools
     let nativeTools = [
@@ -59,17 +60,29 @@ struct LauncherView: View {
                         .font(.system(size: 26, weight: .light))
                         .focused($isSearchFocused)
                         .onChange(of: searchQuery) { _ in
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                updateSearch()
-                            }
+                            updateSearch()
                         }
                         .onSubmit { executeSelected() }
                         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherWindowDidOpen"))) { _ in
-                            searchQuery = ""
-                            activeToolContext = nil
-                            updateSearch()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            var transaction = Transaction(animation: nil)
+                            transaction.disablesAnimations = true
+                            withTransaction(transaction) {
+                                isVisible = false
+                                searchQuery = ""
+                                activeToolContext = nil
+                                updateSearch()
+                            }
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
+                                    isVisible = true
+                                }
                                 isSearchFocused = true
+                            }
+                        }
+                        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherWindowWillClose"))) { _ in
+                            withAnimation(.easeOut(duration: 0.1)) {
+                                isVisible = false
                             }
                         }
                         .onAppear {
@@ -136,6 +149,9 @@ struct LauncherView: View {
                     .stroke(Color.white.opacity(0.2), lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(0.15), radius: 24, x: 0, y: 12)
+            .scaleEffect(isVisible ? 1.0 : 0.95)
+            .opacity(isVisible ? 1.0 : 0.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isCompact)
             
             // This spacer pushes the search bar to the top of the 600pt invisible window bounding box
             Spacer(minLength: 0)
