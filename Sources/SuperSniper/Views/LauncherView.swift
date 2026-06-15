@@ -129,7 +129,6 @@ struct LauncherView: View {
                 .opacity(isCompact ? 0 : 1)
                 .clipped()
             }
-            // Use .sidebar material to tie into the macOS 27 Liquid Glass slider and get the strongest refraction
             .background(
                 VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
                     .opacity(0.8)
