@@ -130,7 +130,10 @@ struct LauncherView: View {
                 .clipped()
             }
             // Use .sidebar material to tie into the macOS 27 Liquid Glass slider and get the strongest refraction
-            .background(VisualEffectView(material: .sidebar, blendingMode: .behindWindow))
+            .background(
+                VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
+                    .opacity(0.8)
+            )
             .clipShape(RoundedRectangle(cornerRadius: isCompact ? 32 : 16, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: isCompact ? 32 : 16, style: .continuous)
