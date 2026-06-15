@@ -88,7 +88,7 @@ struct HUDView: View {
         }
         .padding(14)
         .frame(width: 420, height: 160)
-        .glassEffect()
+        .glassEffect(in: RoundedRectangle(cornerRadius: 12))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -149,7 +149,7 @@ struct ToastView: View {
             .foregroundColor(.white)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .glassEffect()
+            .glassEffect(in: RoundedRectangle(cornerRadius: 8))
             .cornerRadius(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)

@@ -71,7 +71,7 @@ struct MainView: View {
             }
             .padding(.horizontal, 8)
             .frame(width: 180)
-            .glassEffect()
+            .glassEffect(in: Rectangle())
             
             Divider()
             
@@ -87,7 +87,7 @@ struct MainView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .glassEffect()
+            .glassEffect(in: Rectangle())
         }
         .frame(minWidth: 800, minHeight: 500)
     }

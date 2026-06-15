@@ -241,7 +241,7 @@ struct HistoryListView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
             }
-            .glassEffect()
+            .glassEffect(in: RoundedRectangle(cornerRadius: 12))
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -503,7 +503,7 @@ struct ActionsMenuView: View {
             .padding(.vertical, 8)
         }
         .frame(width: 320)
-        .glassEffect()
+        .glassEffect(in: RoundedRectangle(cornerRadius: 12))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
