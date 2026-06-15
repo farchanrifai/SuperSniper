@@ -71,7 +71,7 @@ struct MainView: View {
             }
             .padding(.horizontal, 8)
             .frame(width: 180)
-            .background(VisualEffectView(material: .sidebar, blendingMode: .behindWindow))
+            .glassEffect()
             
             Divider()
             
@@ -87,7 +87,7 @@ struct MainView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow))
+            .glassEffect()
         }
         .frame(minWidth: 800, minHeight: 500)
     }

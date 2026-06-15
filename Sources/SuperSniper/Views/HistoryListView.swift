@@ -241,7 +241,7 @@ struct HistoryListView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
             }
-            .background(VisualEffectView(material: .popover, blendingMode: .behindWindow))
+            .glassEffect()
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -503,7 +503,7 @@ struct ActionsMenuView: View {
             .padding(.vertical, 8)
         }
         .frame(width: 320)
-        .background(VisualEffectView(material: .popover, blendingMode: .withinWindow))
+        .glassEffect()
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
