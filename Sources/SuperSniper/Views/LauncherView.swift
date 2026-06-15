@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LauncherView: View {
     @StateObject private var searchManager = AppSearchManager.shared
+    @StateObject private var fileSearchManager = FileSearchManager.shared
     @State private var searchQuery = ""
     @FocusState private var isSearchFocused: Bool
     
@@ -60,6 +61,10 @@ struct LauncherView: View {
                         .font(.system(size: 26, weight: .light))
                         .focused($isSearchFocused)
                         .onChange(of: searchQuery) { _ in
+                            updateSearch()
+                            fileSearchManager.search(for: searchQuery)
+                        }
+                        .onChange(of: fileSearchManager.searchResults) { _ in
                             updateSearch()
                         }
                         .onSubmit { executeSelected() }
@@ -211,6 +216,7 @@ struct LauncherView: View {
             let appsMatch = searchManager.search(query: trimmed)
             results.append(contentsOf: toolsMatch)
             results.append(contentsOf: appsMatch)
+            results.append(contentsOf: fileSearchManager.searchResults)
         }
         
         filteredItems = results
@@ -297,7 +303,7 @@ struct LauncherView: View {
             return
         }
         
-        if item.type == .application, let url = item.url {
+        if (item.type == .application || item.type == .file), let url = item.url {
             NSWorkspace.shared.open(url)
         } else if item.type == .tool {
             let payload: [String: String] = ["tool": item.name, "arg": ""]
@@ -339,7 +345,7 @@ struct LauncherRowView: View {
             Spacer()
             
             if isSelected {
-                Text(item.type == .application ? "Open ↵" : (item.type == .calculatorHistory ? "Copy ↵" : "Run ↵"))
+                Text((item.type == .application || item.type == .file) ? "Open ↵" : (item.type == .calculatorHistory ? "Copy ↵" : "Run ↵"))
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white)
             }

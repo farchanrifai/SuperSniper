@@ -13,6 +13,7 @@ struct LauncherItem: Identifiable, Hashable {
         case application
         case tool
         case calculatorHistory
+        case file
     }
 }
 
