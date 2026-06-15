@@ -74,7 +74,7 @@ struct LauncherView: View {
                             }
                             
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
-                                withAnimation(.easeOut(duration: 0.1)) {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
                                     isVisible = true
                                 }
                                 isSearchFocused = true
@@ -149,7 +149,7 @@ struct LauncherView: View {
                     .stroke(Color.white.opacity(0.2), lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(0.15), radius: 24, x: 0, y: 12)
-            .scaleEffect(x: isVisible ? 1.0 : 0.98, y: 1.0)
+            .scaleEffect(x: isVisible ? 1.0 : 0.8, y: 1.0)
             .opacity(isVisible ? 1.0 : 0.0)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isCompact)
             
