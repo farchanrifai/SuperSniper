@@ -1,6 +1,15 @@
 import SwiftUI
 import CoreGraphics
 
+struct ActionItem: Identifiable {
+    let id = UUID()
+    let title: String
+    let icon: String
+    var color: Color = .primary
+    let shortcutText: String
+    let perform: () -> Void
+}
+
 struct HistoryListView: View {
     @ObservedObject var history = HistoryManager.shared
     @State private var searchQuery = ""
@@ -8,6 +17,7 @@ struct HistoryListView: View {
     
     @FocusState private var isSearchFocused: Bool
     @State private var showingActionsMenu = false
+    @State private var selectedActionIndex = 0
     
     var filteredItems: [HistoryItem] {
         if searchQuery.isEmpty {
@@ -15,6 +25,30 @@ struct HistoryListView: View {
         } else {
             return history.items.filter { $0.displayText.localizedCaseInsensitiveContains(searchQuery) }
         }
+    }
+    
+    var currentActions: [ActionItem] {
+        var actions: [ActionItem] = []
+        
+        actions.append(ActionItem(title: "Paste to Active App", icon: "arrow.uturn.down", shortcutText: "↵") {
+            pasteSelected()
+        })
+        
+        actions.append(ActionItem(title: "Copy to Clipboard", icon: "doc.on.doc", shortcutText: "⌘ C") {
+            copyToClipboard()
+        })
+        
+        if selectedItem?.type == .file {
+            actions.append(ActionItem(title: "Open in Finder", icon: "folder", shortcutText: "⌘ O") {
+                openInFinder()
+            })
+        }
+        
+        actions.append(ActionItem(title: "Delete from History", icon: "trash", color: .red, shortcutText: "⌫") {
+            deleteSelected()
+        })
+        
+        return actions
     }
     
     var body: some View {
@@ -30,9 +64,6 @@ struct HistoryListView: View {
                         .textFieldStyle(.plain)
                         .font(.system(size: 14))
                         .focused($isSearchFocused)
-                        .onSubmit {
-                            pasteSelected()
-                        }
                     
                     Spacer()
                     
@@ -215,17 +246,28 @@ struct HistoryListView: View {
                 .background(Color(NSColor.windowBackgroundColor).opacity(0.9))
             }
             
+            // Actions Menu Overlay
             if showingActionsMenu {
-                ActionsMenuView(
-                    item: selectedItem,
-                    onDismiss: { showingActionsMenu = false },
-                    onPaste: pasteSelected,
-                    onDelete: deleteSelected
-                )
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        ActionsMenuView(
+                            actions: currentActions,
+                            selectedIndex: selectedActionIndex
+                        )
+                        .padding([.trailing, .bottom], 16)
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                .zIndex(1)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.clipboardWindowDidOpen"))) { _ in
-            // Slight delay ensures the window has become key before requesting focus
+            // Reset state
+            showingActionsMenu = false
+            selectedActionIndex = 0
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 isSearchFocused = true
             }
@@ -233,18 +275,11 @@ struct HistoryListView: View {
                 selectedItem = filteredItems.first
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.arrowKeyPressed"))) { notification in
-            if let keyCode = notification.object as? UInt16 {
-                // 126 = Up, 125 = Down
-                if keyCode == 126 {
-                    moveSelection(direction: .up)
-                } else if keyCode == 125 {
-                    moveSelection(direction: .down)
-                }
-            }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.rawKeyPressed"))) { notification in
+            guard let keyCode = notification.object as? UInt16 else { return }
+            handleRawKey(keyCode)
         }
         .onAppear {
-            // Initial load
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isSearchFocused = true
             }
@@ -258,40 +293,65 @@ struct HistoryListView: View {
             }
         }
         .background(
-            Group {
-                Button("Paste") { pasteSelected() }
-                    .keyboardShortcut(.defaultAction)
-                    .hidden()
-                
-                Button("Actions") { showingActionsMenu.toggle() }
-                    .keyboardShortcut("k", modifiers: .command)
-                    .hidden()
+            Button("Actions") { 
+                selectedActionIndex = 0
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    showingActionsMenu.toggle() 
+                }
             }
+            .keyboardShortcut("k", modifiers: .command)
+            .hidden()
         )
     }
     
-    private func pasteSelected() {
-        guard let item = selectedItem else { return }
-        
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        
-        ClipboardObserver.shared.ignoreNextChange()
-        
-        switch item.type {
-        case .text:
-            if let text = item.text {
-                pb.setString(text, forType: .string)
+    // MARK: - Key Handling
+    
+    private func handleRawKey(_ keyCode: UInt16) {
+        if showingActionsMenu {
+            // Context: Actions Menu
+            switch keyCode {
+            case 126: // Up
+                selectedActionIndex = max(0, selectedActionIndex - 1)
+            case 125: // Down
+                selectedActionIndex = min(currentActions.count - 1, selectedActionIndex + 1)
+            case 36: // Return
+                currentActions[selectedActionIndex].perform()
+            case 53: // Esc
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    showingActionsMenu = false
+                }
+            default: break
             }
-        case .image:
-            if let fileName = item.imageFileName, let image = HistoryManager.shared.getImage(for: fileName) {
-                pb.writeObjects([image])
-            }
-        case .file:
-            if let url = item.fileURL {
-                pb.writeObjects([url as NSURL])
+        } else {
+            // Context: Main List
+            switch keyCode {
+            case 126: // Up
+                moveSelection(direction: -1)
+            case 125: // Down
+                moveSelection(direction: 1)
+            case 36: // Return
+                pasteSelected()
+            case 53: // Esc
+                ClipboardWindowController.shared.hideWindow()
+            default: break
             }
         }
+    }
+    
+    private func moveSelection(direction: Int) {
+        guard !filteredItems.isEmpty else { return }
+        let currentIndex = filteredItems.firstIndex(where: { $0.id == selectedItem?.id }) ?? -1
+        let newIndex = max(0, min(filteredItems.count - 1, currentIndex + direction))
+        if newIndex != currentIndex {
+            selectedItem = filteredItems[newIndex]
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func pasteSelected() {
+        guard let item = selectedItem else { return }
+        copyItemToPasteboard(item)
         
         ClipboardWindowController.shared.hideWindow()
         NSApp.hide(nil)
@@ -301,23 +361,47 @@ struct HistoryListView: View {
         }
     }
     
+    private func copyToClipboard() {
+        guard let item = selectedItem else { return }
+        copyItemToPasteboard(item)
+        showingActionsMenu = false
+        ClipboardWindowController.shared.hideWindow()
+    }
+    
+    private func openInFinder() {
+        guard let url = selectedItem?.fileURL else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+        showingActionsMenu = false
+        ClipboardWindowController.shared.hideWindow()
+    }
+    
+    private func copyItemToPasteboard(_ item: HistoryItem) {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        ClipboardObserver.shared.ignoreNextChange()
+        
+        switch item.type {
+        case .text:
+            if let text = item.text { pb.setString(text, forType: .string) }
+        case .image:
+            if let fileName = item.imageFileName, let image = HistoryManager.shared.getImage(for: fileName) {
+                pb.writeObjects([image])
+            }
+        case .file:
+            if let url = item.fileURL { pb.writeObjects([url as NSURL]) }
+        }
+    }
+    
     private func deleteSelected() {
         guard let item = selectedItem else { return }
         let id = item.id
         
-        // Find next item to select before deleting
         let nextItem: HistoryItem?
         if let idx = filteredItems.firstIndex(where: { $0.id == id }) {
-            if idx + 1 < filteredItems.count {
-                nextItem = filteredItems[idx + 1]
-            } else if idx > 0 {
-                nextItem = filteredItems[idx - 1]
-            } else {
-                nextItem = nil
-            }
-        } else {
-            nextItem = nil
-        }
+            if idx + 1 < filteredItems.count { nextItem = filteredItems[idx + 1] }
+            else if idx > 0 { nextItem = filteredItems[idx - 1] }
+            else { nextItem = nil }
+        } else { nextItem = nil }
         
         HistoryManager.shared.deleteEntry(id: id)
         selectedItem = nextItem
@@ -328,26 +412,6 @@ struct HistoryListView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
         return formatter.localizedString(for: date, relativeTo: Date())
-    }
-    
-    private func moveSelection(direction: MoveCommandDirection) {
-        guard !filteredItems.isEmpty else { return }
-        
-        let currentIndex = filteredItems.firstIndex(where: { $0.id == selectedItem?.id }) ?? -1
-        
-        var newIndex = currentIndex
-        switch direction {
-        case .up:
-            newIndex = max(0, currentIndex - 1)
-        case .down:
-            newIndex = min(filteredItems.count - 1, currentIndex + 1)
-        default:
-            return
-        }
-        
-        if newIndex != currentIndex {
-            selectedItem = filteredItems[newIndex]
-        }
     }
 }
 
@@ -386,6 +450,8 @@ struct HistoryRowView: View {
                 .fill(isSelected ? Color.accentColor : Color.clear)
         )
         .contentShape(Rectangle())
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
     }
 }
 
@@ -411,78 +477,69 @@ struct MetadataRow: View {
 // MARK: - Actions Menu Overlay
 
 struct ActionsMenuView: View {
-    let item: HistoryItem?
-    let onDismiss: () -> Void
-    let onPaste: () -> Void
-    let onDelete: () -> Void
+    let actions: [ActionItem]
+    let selectedIndex: Int
     
     var body: some View {
-        ZStack {
-            // Darkened background
-            Color.black.opacity(0.3)
-                .ignoresSafeArea()
-                .onTapGesture { onDismiss() }
-            
-            // Menu Panel
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Actions")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                
-                Divider()
-                
-                VStack(spacing: 4) {
-                    ActionRow(title: "Paste to Active App", icon: "arrow.uturn.down", action: onPaste)
-                    ActionRow(title: "Delete from History", icon: "trash", color: .red, action: onDelete)
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(spacing: 4) {
+                ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
+                    ActionMenuRow(action: action, isSelected: index == selectedIndex)
                 }
-                .padding(8)
             }
-            .frame(width: 300)
-            .background(VisualEffectView(material: .popover, blendingMode: .withinWindow))
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
+            .padding(8)
+            
+            Divider()
+            
+            HStack {
+                Text("Search actions...")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary.opacity(0.5))
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
+        .frame(width: 320)
+        .background(VisualEffectView(material: .popover, blendingMode: .withinWindow))
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.4), radius: 30, x: 0, y: 15)
     }
 }
 
-struct ActionRow: View {
-    let title: String
-    let icon: String
-    var color: Color = .primary
-    let action: () -> Void
-    
-    @State private var isHovered = false
+struct ActionMenuRow: View {
+    let action: ActionItem
+    let isSelected: Bool
     
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 13))
-                    .foregroundColor(isHovered ? .white : color)
-                    .frame(width: 16)
-                
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(isHovered ? .white : color)
-                
-                Spacer()
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
-            .background(isHovered ? Color.accentColor : Color.clear)
-            .cornerRadius(6)
-            .contentShape(Rectangle())
+        HStack(spacing: 12) {
+            Image(systemName: action.icon)
+                .font(.system(size: 13))
+                .foregroundColor(isSelected ? .white : action.color)
+                .frame(width: 16)
+            
+            Text(action.title)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(isSelected ? .white : action.color)
+            
+            Spacer()
+            
+            Text(action.shortcutText)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(isSelected ? Color.white.opacity(0.2) : Color.primary.opacity(0.1))
+                .cornerRadius(4)
         }
-        .buttonStyle(.plain)
-        .onHover { hover in
-            isHovered = hover
-        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .background(isSelected ? Color.accentColor : Color.clear)
+        .cornerRadius(6)
     }
 }
 
