@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-struct ActionsMenuView: View {
+struct LauncherActionsMenuView: View {
     let item: LauncherItem
     let onClose: () -> Void
     
@@ -67,8 +67,8 @@ struct ActionsMenuView: View {
             }
         }
         .frame(width: 350, height: 350)
-        .background(VisualEffectView(material: .popover, blendingMode: .withinWindow))
-        .cornerRadius(16)
+        .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)

@@ -171,23 +171,7 @@ struct LauncherView: View {
             Spacer(minLength: 0)
         }
         .frame(width: 700, height: 600, alignment: .top)
-        .overlay(
-            Group {
-                if showActionsMenu, let item = selectedItem {
-                    HStack {
-                        Spacer()
-                        ActionsMenuView(item: item, onClose: {
-                            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                                showActionsMenu = false
-                            }
-                        })
-                        .padding(.trailing, 20)
-                        .padding(.top, 100)
-                    }
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
-                }
-            }
-        )
+        .overlay(actionsMenuOverlay())
         
         // Key Routing
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherKeyPressed"))) { notification in
@@ -205,6 +189,25 @@ struct LauncherView: View {
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherCmdYPressed"))) { _ in
             guard let item = selectedItem, let url = item.url else { return }
             PreviewManager.shared.togglePreview(for: url)
+        }
+    }
+    
+    @ViewBuilder
+    private func actionsMenuOverlay() -> some View {
+        Group {
+            if showActionsMenu, let item = selectedItem {
+                HStack {
+                    Spacer()
+                    LauncherActionsMenuView(item: item, onClose: {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                            showActionsMenu = false
+                        }
+                    })
+                    .padding(.trailing, 20)
+                    .padding(.top, 100)
+                }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
         }
     }
     
