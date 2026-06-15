@@ -99,16 +99,26 @@ struct HistoryListView: View {
                                             .foregroundColor(.red)
                                     }
                                 case .file:
-                                    VStack(spacing: 12) {
-                                        Image(systemName: "doc.fill")
-                                            .font(.system(size: 48))
-                                            .foregroundColor(.accentColor)
-                                        Text(selected.fileURL?.path ?? "Unknown File")
-                                            .font(.system(size: 12))
-                                            .multilineTextAlignment(.center)
+                                    if let url = selected.fileURL,
+                                       ["png", "jpg", "jpeg", "heic", "tiff", "gif", "bmp", "webp"].contains(url.pathExtension.lowercased()),
+                                       let image = NSImage(contentsOf: url) {
+                                        Image(nsImage: image)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .padding()
+                                    } else {
+                                        VStack(spacing: 12) {
+                                            Image(systemName: "doc.fill")
+                                                .font(.system(size: 48))
+                                                .foregroundColor(.accentColor)
+                                            Text(selected.fileURL?.path ?? "Unknown File")
+                                                .font(.system(size: 12))
+                                                .multilineTextAlignment(.center)
+                                                .lineLimit(3)
+                                        }
+                                        .padding()
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     }
-                                    .padding()
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .topLeading)

@@ -185,6 +185,16 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self?.captureFullScreen()
             }
         )
+        
+        // Register Clipboard History (ID: 4)
+        HotKeyManager.shared.register(
+            id: 4,
+            keyCode: prefs.chKeyCode,
+            modifiers: prefs.chModifier,
+            action: {
+                ClipboardWindowController.shared.toggleWindow()
+            }
+        )
     }
     
     @objc private func shortcutsPreferenceChanged() {

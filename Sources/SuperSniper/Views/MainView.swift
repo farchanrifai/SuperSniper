@@ -11,7 +11,6 @@ class NavigationState: ObservableObject {
 struct MainView: View {
     enum SidebarTab: String, CaseIterable, Identifiable {
         case dashboard = "Dashboard"
-        case history = "OCR Clips"
         case settings = "Settings"
         
         var id: String { self.rawValue }
@@ -19,7 +18,6 @@ struct MainView: View {
         var icon: String {
             switch self {
             case .dashboard: return "square.grid.2x2.fill"
-            case .history: return "doc.text.fill"
             case .settings: return "gearshape.fill"
             }
         }
@@ -27,7 +25,6 @@ struct MainView: View {
         var color: Color {
             switch self {
             case .dashboard: return .blue
-            case .history: return .orange
             case .settings: return .gray
             }
         }
@@ -55,10 +52,6 @@ struct MainView: View {
             switch navState.selectedTab {
             case .dashboard:
                 DashboardView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow))
-            case .history:
-                HistoryListView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow))
             case .settings:

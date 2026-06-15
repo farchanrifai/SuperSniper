@@ -27,6 +27,9 @@ class Preferences: ObservableObject {
     private let kFsModifier = "com.farchan.sniper.fsModifier"
     private let kFsKeyCode = "com.farchan.sniper.fsKeyCode"
     
+    private let kChModifier = "com.farchan.sniper.chModifier"
+    private let kChKeyCode = "com.farchan.sniper.chKeyCode"
+    
     @Published var savePath: String {
         didSet { UserDefaults.standard.set(savePath, forKey: kSavePath) }
     }
@@ -86,6 +89,19 @@ class Preferences: ObservableObject {
         }
     }
     
+    @Published var chModifier: UInt32 {
+        didSet {
+            UserDefaults.standard.set(chModifier, forKey: kChModifier)
+            NotificationCenter.default.post(name: .shortcutsDidChange, object: nil)
+        }
+    }
+    @Published var chKeyCode: UInt32 {
+        didSet {
+            UserDefaults.standard.set(chKeyCode, forKey: kChKeyCode)
+            NotificationCenter.default.post(name: .shortcutsDidChange, object: nil)
+        }
+    }
+    
     private init() {
         // Defaults
         let defaultPath = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first?.path ?? NSHomeDirectory()
@@ -106,6 +122,10 @@ class Preferences: ObservableObject {
         // Fullscreen shortcut default: Cmd + Option + F (2304, 3)
         self.fsModifier = UserDefaults.standard.object(forKey: kFsModifier) as? UInt32 ?? UInt32(cmdKey | optionKey)
         self.fsKeyCode = UserDefaults.standard.object(forKey: kFsKeyCode) as? UInt32 ?? 3
+        
+        // Clipboard history shortcut default: Option + C (2048, 8)
+        self.chModifier = UserDefaults.standard.object(forKey: kChModifier) as? UInt32 ?? UInt32(optionKey)
+        self.chKeyCode = UserDefaults.standard.object(forKey: kChKeyCode) as? UInt32 ?? 8
     }
 }
 
@@ -392,6 +412,15 @@ struct PreferencesView: View {
                             color: .teal,
                             modifier: $prefs.fsModifier,
                             keyCode: $prefs.fsKeyCode
+                        )
+                        
+                        Divider()
+                        
+                        ShortcutRecorderView(
+                            label: "Clipboard History",
+                            color: .purple,
+                            modifier: $prefs.chModifier,
+                            keyCode: $prefs.chKeyCode
                         )
                     }
                     .padding(.horizontal, 16)
