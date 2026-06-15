@@ -18,7 +18,8 @@ struct LauncherView: View {
     ]
     
     var isCompact: Bool {
-        searchQuery.trimmingCharacters(in: .whitespaces).isEmpty && activeToolContext == nil
+        if activeToolContext != nil { return true }
+        return searchQuery.trimmingCharacters(in: .whitespaces).isEmpty
     }
     
     var body: some View {

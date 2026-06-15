@@ -448,9 +448,10 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let finderURLs = FinderManager.shared.getSelectedFiles(allowedExtensions: ["pdf"])
         
         if finderURLs.count > 1 {
+            let destination = finderURLs.first?.deletingLastPathComponent()
             do {
-                let output = try PDFManager.shared.mergePDFs(urls: finderURLs, outputName: outputName.isEmpty ? nil : outputName)
-                NSWorkspace.shared.activateFileViewerSelecting([output])
+                _ = try PDFManager.shared.mergePDFs(urls: finderURLs, outputName: outputName.isEmpty ? nil : outputName, destination: destination)
+                bringFinderToFront()
                 HUDManager.shared.showHUD(with: "Successfully merged \(finderURLs.count) PDFs")
             } catch {
                 HUDManager.shared.showHUD(with: "Failed to merge PDFs: \(error.localizedDescription)")
@@ -466,9 +467,10 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel.message = "Select multiple PDFs to merge"
         
         if panel.runModal() == .OK {
+            let destination = panel.urls.first?.deletingLastPathComponent()
             do {
-                let output = try PDFManager.shared.mergePDFs(urls: panel.urls, outputName: outputName.isEmpty ? nil : outputName)
-                NSWorkspace.shared.activateFileViewerSelecting([output])
+                _ = try PDFManager.shared.mergePDFs(urls: panel.urls, outputName: outputName.isEmpty ? nil : outputName, destination: destination)
+                bringFinderToFront()
                 HUDManager.shared.showHUD(with: "Successfully merged PDFs")
             } catch {
                 HUDManager.shared.showHUD(with: "Failed to merge PDFs: \(error.localizedDescription)")
@@ -481,9 +483,10 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let finderURLs = FinderManager.shared.getSelectedFiles(allowedExtensions: ["pdf"])
         
         if let url = finderURLs.first {
+            let destination = url.deletingLastPathComponent()
             do {
-                let outputs = try PDFManager.shared.splitPDF(url: url, arg: fallbackArg)
-                NSWorkspace.shared.activateFileViewerSelecting(outputs)
+                let outputs = try PDFManager.shared.splitPDF(url: url, arg: fallbackArg, destination: destination)
+                bringFinderToFront()
                 HUDManager.shared.showHUD(with: "Successfully split PDF into \(outputs.count) parts")
             } catch {
                 HUDManager.shared.showHUD(with: "Failed to split PDF: \(error.localizedDescription)")
@@ -499,9 +502,10 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel.message = "Select a PDF to split in half"
         
         if panel.runModal() == .OK, let url = panel.url {
+            let destination = url.deletingLastPathComponent()
             do {
-                let outputs = try PDFManager.shared.splitPDF(url: url, arg: fallbackArg)
-                NSWorkspace.shared.activateFileViewerSelecting(outputs)
+                let outputs = try PDFManager.shared.splitPDF(url: url, arg: fallbackArg, destination: destination)
+                bringFinderToFront()
                 HUDManager.shared.showHUD(with: "Successfully split PDF into \(outputs.count) parts")
             } catch {
                 HUDManager.shared.showHUD(with: "Failed to split PDF: \(error.localizedDescription)")
@@ -514,9 +518,10 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let finderURLs = FinderManager.shared.getSelectedFiles(allowedExtensions: ["pdf"])
         
         if let url = finderURLs.first {
+            let destination = url.deletingLastPathComponent()
             do {
-                let output = try PDFManager.shared.protectPDF(url: url, password: password)
-                NSWorkspace.shared.activateFileViewerSelecting([output])
+                _ = try PDFManager.shared.protectPDF(url: url, password: password, destination: destination)
+                bringFinderToFront()
                 HUDManager.shared.showHUD(with: "Saved protected PDF (Password: \(password))")
             } catch {
                 HUDManager.shared.showHUD(with: "Failed to protect PDF: \(error.localizedDescription)")
@@ -532,9 +537,10 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel.message = "Select a PDF to protect"
         
         if panel.runModal() == .OK, let url = panel.url {
+            let destination = url.deletingLastPathComponent()
             do {
-                let output = try PDFManager.shared.protectPDF(url: url, password: password)
-                NSWorkspace.shared.activateFileViewerSelecting([output])
+                _ = try PDFManager.shared.protectPDF(url: url, password: password, destination: destination)
+                bringFinderToFront()
                 HUDManager.shared.showHUD(with: "Saved protected PDF (Password: \(password))")
             } catch {
                 HUDManager.shared.showHUD(with: "Failed to protect PDF: \(error.localizedDescription)")
@@ -547,9 +553,10 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let finderURLs = FinderManager.shared.getSelectedFiles(allowedExtensions: ["pdf"])
         
         if let url = finderURLs.first {
+            let destination = url.deletingLastPathComponent()
             do {
-                let output = try PDFManager.shared.unlockPDF(url: url, password: password)
-                NSWorkspace.shared.activateFileViewerSelecting([output])
+                _ = try PDFManager.shared.unlockPDF(url: url, password: password, destination: destination)
+                bringFinderToFront()
                 HUDManager.shared.showHUD(with: "Successfully unlocked PDF")
             } catch {
                 HUDManager.shared.showHUD(with: "Failed to unlock PDF: \(error.localizedDescription)")
@@ -565,9 +572,10 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel.message = "Select a protected PDF to unlock"
         
         if panel.runModal() == .OK, let url = panel.url {
+            let destination = url.deletingLastPathComponent()
             do {
-                let output = try PDFManager.shared.unlockPDF(url: url, password: password)
-                NSWorkspace.shared.activateFileViewerSelecting([output])
+                _ = try PDFManager.shared.unlockPDF(url: url, password: password, destination: destination)
+                bringFinderToFront()
                 HUDManager.shared.showHUD(with: "Successfully unlocked PDF")
             } catch {
                 HUDManager.shared.showHUD(with: "Failed to unlock PDF: \(error.localizedDescription)")
@@ -576,6 +584,12 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     
     // MARK: - Helpers
+    private func bringFinderToFront() {
+        if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first {
+            finder.activate(options: .activateIgnoringOtherApps)
+        }
+    }
+    
     private func cleanupTempFile() {
         let tempURL = self.tempCaptureURL
         if FileManager.default.fileExists(atPath: tempURL.path) {

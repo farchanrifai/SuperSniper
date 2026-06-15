@@ -14,7 +14,7 @@ class PDFManager {
     private init() {}
     
     /// Merges multiple PDFs into a single PDF
-    func mergePDFs(urls: [URL], outputName: String? = nil) throws -> URL {
+    func mergePDFs(urls: [URL], outputName: String? = nil, destination: URL? = nil) throws -> URL {
         let mergedDocument = PDFDocument()
         
         for url in urls {
@@ -27,7 +27,7 @@ class PDFManager {
             }
         }
         
-        let outputURL = createOutputURL(prefix: "Merged", customName: outputName)
+        let outputURL = createOutputURL(prefix: "Merged", customName: outputName, destination: destination)
         if mergedDocument.write(to: outputURL) {
             return outputURL
         } else {
@@ -36,7 +36,7 @@ class PDFManager {
     }
     
     /// Splits a PDF into multiple parts based on page count or MB size
-    func splitPDF(url: URL, arg: String) throws -> [URL] {
+    func splitPDF(url: URL, arg: String, destination: URL? = nil) throws -> [URL] {
         guard let document = PDFDocument(url: url) else { throw PDFError.invalidDocument }
         let totalPages = document.pageCount
         guard totalPages > 0 else { return [] }
@@ -61,7 +61,7 @@ class PDFManager {
                     // Check size
                     if let data = currentDoc.dataRepresentation(), Double(data.count) >= maxBytes {
                         // Save current
-                        let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil)
+                        let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil, destination: destination)
                         currentDoc.write(to: outURL)
                         outputURLs.append(outURL)
                         
@@ -74,7 +74,7 @@ class PDFManager {
             
             // Save remainder
             if currentDoc.pageCount > 0 {
-                let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil)
+                let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil, destination: destination)
                 currentDoc.write(to: outURL)
                 outputURLs.append(outURL)
             }
@@ -93,7 +93,7 @@ class PDFManager {
                     currentDoc.insert(page, at: currentDoc.pageCount)
                     
                     if currentDoc.pageCount == pageLimit {
-                        let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil)
+                        let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil, destination: destination)
                         currentDoc.write(to: outURL)
                         outputURLs.append(outURL)
                         currentDoc = PDFDocument()
@@ -104,7 +104,7 @@ class PDFManager {
             
             // Save remainder
             if currentDoc.pageCount > 0 {
-                let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil)
+                let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil, destination: destination)
                 currentDoc.write(to: outURL)
                 outputURLs.append(outURL)
             }
@@ -114,10 +114,10 @@ class PDFManager {
     }
     
     /// Protects a PDF with a password
-    func protectPDF(url: URL, password: String) throws -> URL {
+    func protectPDF(url: URL, password: String, destination: URL? = nil) throws -> URL {
         guard let document = PDFDocument(url: url) else { throw PDFError.invalidDocument }
         
-        let outputURL = createOutputURL(prefix: "Protected", customName: nil)
+        let outputURL = createOutputURL(prefix: "Protected", customName: nil, destination: destination)
         
         let options: [PDFDocumentWriteOption: Any] = [
             .userPasswordOption: password,
@@ -131,8 +131,8 @@ class PDFManager {
         }
     }
     
-    /// Unlocks a PDF and saves it without a password
-    func unlockPDF(url: URL, password: String) throws -> URL {
+    /// Unlocks a protected PDF
+    func unlockPDF(url: URL, password: String, destination: URL? = nil) throws -> URL {
         guard let document = PDFDocument(url: url) else { throw PDFError.invalidDocument }
         
         if document.isEncrypted {
@@ -141,7 +141,7 @@ class PDFManager {
             }
         }
         
-        let outputURL = createOutputURL(prefix: "Unlocked", customName: nil)
+        let outputURL = createOutputURL(prefix: "Unlocked", customName: nil, destination: destination)
         if document.write(to: outputURL) {
             return outputURL
         } else {
@@ -151,17 +151,17 @@ class PDFManager {
     
     // MARK: - Helpers
     
-    private func createOutputURL(prefix: String, customName: String?) -> URL {
-        let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first!
+    private func createOutputURL(prefix: String, customName: String?, destination: URL? = nil) -> URL {
+        let folder = destination ?? FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first!
         
         if let name = customName, !name.trimmingCharacters(in: .whitespaces).isEmpty {
             let cleanName = name.hasSuffix(".pdf") ? name : "\(name).pdf"
-            return desktop.appendingPathComponent(cleanName)
+            return folder.appendingPathComponent(cleanName)
         }
         
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmmss"
         let timestamp = formatter.string(from: Date())
-        return desktop.appendingPathComponent("\(prefix)_\(timestamp).pdf")
+        return folder.appendingPathComponent("\(prefix)_\(timestamp).pdf")
     }
 }
