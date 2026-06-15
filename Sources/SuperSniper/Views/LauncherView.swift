@@ -74,7 +74,7 @@ struct LauncherView: View {
                             }
                             
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
+                                withAnimation(.spring(response: 0.2, dampingFraction: 0.75)) {
                                     isVisible = true
                                 }
                                 isSearchFocused = true
