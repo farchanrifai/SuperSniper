@@ -14,9 +14,19 @@ class LauncherPanel: NSPanel {
                 return // Consume the event completely
             }
             
-            // Handle standard Edit shortcuts because borderless windows lack a Main Menu
             if event.modifierFlags.contains(.command) {
                 let chars = event.charactersIgnoringModifiers?.lowercased()
+                let keyCode = event.keyCode
+                
+                // Intercept Cmd+K (40) and Cmd+Y (16) directly in sendEvent to prevent ANY beeps
+                if keyCode == 40 || chars == "k" {
+                    NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherCmdKPressed"), object: nil)
+                    return
+                }
+                if keyCode == 16 || chars == "y" {
+                    NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.launcherCmdYPressed"), object: nil)
+                    return
+                }
                 
                 let handled: Bool
                 switch chars {
