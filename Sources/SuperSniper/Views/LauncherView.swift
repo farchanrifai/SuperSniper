@@ -7,6 +7,7 @@ struct LauncherView: View {
     
     @State private var filteredItems: [LauncherItem] = []
     @State private var selectedItem: LauncherItem?
+    @State private var activeToolContext: LauncherItem?
     
     // Built-in tools
     let nativeTools = [
@@ -17,7 +18,7 @@ struct LauncherView: View {
     ]
     
     var isCompact: Bool {
-        searchQuery.trimmingCharacters(in: .whitespaces).isEmpty
+        searchQuery.trimmingCharacters(in: .whitespaces).isEmpty && activeToolContext == nil
     }
     
     var body: some View {
@@ -25,11 +26,28 @@ struct LauncherView: View {
             VStack(spacing: 0) {
                 // Top Search Bar
                 HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 22, weight: .regular))
-                        .foregroundColor(.primary.opacity(0.8))
+                    if let tool = activeToolContext {
+                        if let icon = tool.icon {
+                            Image(nsImage: icon)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 22, height: 22)
+                                .foregroundColor(.primary.opacity(0.8))
+                        }
+                        
+                        Text(tool.name)
+                            .font(.system(size: 14, weight: .bold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.primary.opacity(0.1))
+                            .cornerRadius(6)
+                    } else {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 22, weight: .regular))
+                            .foregroundColor(.primary.opacity(0.8))
+                    }
                     
-                    TextField("Spotlight Search", text: $searchQuery)
+                    TextField(placeholderText(), text: $searchQuery)
                         .textFieldStyle(.plain)
                         .font(.system(size: 26, weight: .light))
                         .focused($isSearchFocused)
@@ -41,6 +59,7 @@ struct LauncherView: View {
                         .onSubmit { executeSelected() }
                         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("com.farchan.sniper.launcherWindowDidOpen"))) { _ in
                             searchQuery = ""
+                            activeToolContext = nil
                             updateSearch()
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                 isSearchFocused = true
@@ -110,6 +129,15 @@ struct LauncherView: View {
         }
     }
     
+    private func placeholderText() -> String {
+        if let tool = activeToolContext {
+            if tool.name == "Merge PDFs" { return "Enter new file name (optional)..." }
+            if tool.name == "Split PDF" { return "Enter page count (e.g. 5) or size (e.g. 10MB)..." }
+            return "Enter argument..."
+        }
+        return "Spotlight Search"
+    }
+    
     private func updateSearch() {
         let trimmed = searchQuery.trimmingCharacters(in: .whitespaces).lowercased()
         
@@ -140,7 +168,20 @@ struct LauncherView: View {
     
     private func handleRawKey(_ keyCode: UInt16) {
         if keyCode == 53 { // Esc
+            if activeToolContext != nil {
+                activeToolContext = nil
+                searchQuery = ""
+                return
+            }
             LauncherWindowController.shared.hideWindow()
+            return
+        }
+        
+        if keyCode == 48 { // Tab
+            if let selected = selectedItem, selected.type == .tool, activeToolContext == nil {
+                activeToolContext = selected
+                searchQuery = ""
+            }
             return
         }
         
@@ -167,6 +208,13 @@ struct LauncherView: View {
     }
     
     private func executeSelected() {
+        if let tool = activeToolContext {
+            LauncherWindowController.shared.hideWindow()
+            let payload: [String: String] = ["tool": tool.name, "arg": searchQuery]
+            NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.executeTool"), object: payload)
+            return
+        }
+        
         // If they press enter while compact, execute the top hit
         let itemToExecute = isCompact ? filteredItems.first : selectedItem
         
@@ -177,7 +225,8 @@ struct LauncherView: View {
         if item.type == .application, let url = item.url {
             NSWorkspace.shared.open(url)
         } else if item.type == .tool {
-            NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.executeTool"), object: item.name)
+            let payload: [String: String] = ["tool": item.name, "arg": ""]
+            NotificationCenter.default.post(name: Notification.Name("com.farchan.sniper.executeTool"), object: payload)
         }
     }
 }

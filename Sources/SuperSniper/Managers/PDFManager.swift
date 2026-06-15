@@ -14,7 +14,7 @@ class PDFManager {
     private init() {}
     
     /// Merges multiple PDFs into a single PDF
-    func mergePDFs(urls: [URL]) throws -> URL {
+    func mergePDFs(urls: [URL], outputName: String? = nil) throws -> URL {
         let mergedDocument = PDFDocument()
         
         for url in urls {
@@ -27,7 +27,7 @@ class PDFManager {
             }
         }
         
-        let outputURL = createOutputURL(prefix: "Merged")
+        let outputURL = createOutputURL(prefix: "Merged", customName: outputName)
         if mergedDocument.write(to: outputURL) {
             return outputURL
         } else {
@@ -35,30 +35,81 @@ class PDFManager {
         }
     }
     
-    /// Splits a PDF into two documents after the specified page index (0-indexed)
-    func splitPDF(url: URL, afterPage index: Int) throws -> (URL, URL) {
+    /// Splits a PDF into multiple parts based on page count or MB size
+    func splitPDF(url: URL, arg: String) throws -> [URL] {
         guard let document = PDFDocument(url: url) else { throw PDFError.invalidDocument }
+        let totalPages = document.pageCount
+        guard totalPages > 0 else { return [] }
         
-        let doc1 = PDFDocument()
-        let doc2 = PDFDocument()
+        let cleanArg = arg.trimmingCharacters(in: .whitespaces).lowercased()
         
-        for i in 0..<document.pageCount {
-            if let page = document.page(at: i) {
-                if i <= index {
-                    doc1.insert(page, at: doc1.pageCount)
-                } else {
-                    doc2.insert(page, at: doc2.pageCount)
+        if cleanArg.hasSuffix("mb") {
+            // Split by rough file size
+            let mbString = cleanArg.replacingOccurrences(of: "mb", with: "")
+            guard let maxMB = Double(mbString) else { return [] }
+            let maxBytes = maxMB * 1024 * 1024
+            
+            // Heuristic approach: Keep adding pages until the output data exceeds maxBytes
+            var outputURLs: [URL] = []
+            var currentDoc = PDFDocument()
+            var partNum = 1
+            
+            for i in 0..<totalPages {
+                if let page = document.page(at: i) {
+                    currentDoc.insert(page, at: currentDoc.pageCount)
+                    
+                    // Check size
+                    if let data = currentDoc.dataRepresentation(), Double(data.count) >= maxBytes {
+                        // Save current
+                        let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil)
+                        currentDoc.write(to: outURL)
+                        outputURLs.append(outURL)
+                        
+                        // Start new
+                        currentDoc = PDFDocument()
+                        partNum += 1
+                    }
                 }
             }
-        }
-        
-        let out1 = createOutputURL(prefix: "Split_Part1")
-        let out2 = createOutputURL(prefix: "Split_Part2")
-        
-        if doc1.write(to: out1) && doc2.write(to: out2) {
-            return (out1, out2)
+            
+            // Save remainder
+            if currentDoc.pageCount > 0 {
+                let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil)
+                currentDoc.write(to: outURL)
+                outputURLs.append(outURL)
+            }
+            
+            return outputURLs
+            
         } else {
-            throw PDFError.saveFailed
+            // Split by page count
+            guard let pageLimit = Int(cleanArg), pageLimit > 0 else { return [] }
+            var outputURLs: [URL] = []
+            var currentDoc = PDFDocument()
+            var partNum = 1
+            
+            for i in 0..<totalPages {
+                if let page = document.page(at: i) {
+                    currentDoc.insert(page, at: currentDoc.pageCount)
+                    
+                    if currentDoc.pageCount == pageLimit {
+                        let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil)
+                        currentDoc.write(to: outURL)
+                        outputURLs.append(outURL)
+                        currentDoc = PDFDocument()
+                        partNum += 1
+                    }
+                }
+            }
+            
+            // Save remainder
+            if currentDoc.pageCount > 0 {
+                let outURL = createOutputURL(prefix: "Split_Part\(partNum)", customName: nil)
+                currentDoc.write(to: outURL)
+                outputURLs.append(outURL)
+            }
+            
+            return outputURLs
         }
     }
     
@@ -66,7 +117,7 @@ class PDFManager {
     func protectPDF(url: URL, password: String) throws -> URL {
         guard let document = PDFDocument(url: url) else { throw PDFError.invalidDocument }
         
-        let outputURL = createOutputURL(prefix: "Protected")
+        let outputURL = createOutputURL(prefix: "Protected", customName: nil)
         
         let options: [PDFDocumentWriteOption: Any] = [
             .userPasswordOption: password,
@@ -90,7 +141,7 @@ class PDFManager {
             }
         }
         
-        let outputURL = createOutputURL(prefix: "Unlocked")
+        let outputURL = createOutputURL(prefix: "Unlocked", customName: nil)
         if document.write(to: outputURL) {
             return outputURL
         } else {
@@ -100,8 +151,14 @@ class PDFManager {
     
     // MARK: - Helpers
     
-    private func createOutputURL(prefix: String) -> URL {
+    private func createOutputURL(prefix: String, customName: String?) -> URL {
         let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first!
+        
+        if let name = customName, !name.trimmingCharacters(in: .whitespaces).isEmpty {
+            let cleanName = name.hasSuffix(".pdf") ? name : "\(name).pdf"
+            return desktop.appendingPathComponent(cleanName)
+        }
+        
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmmss"
         let timestamp = formatter.string(from: Date())
