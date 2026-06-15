@@ -19,6 +19,9 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Register global shortcuts
         registerShortcuts()
         
+        // Start background clipboard observer
+        ClipboardObserver.shared.startObserving()
+        
         // Observe shortcut preference changes
         NotificationCenter.default.addObserver(
             self,
@@ -120,7 +123,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
             for item in historyEntries {
                 // Truncate text for menu item preview
                 let previewLength = 30
-                var truncatedText = item.text.replacingOccurrences(of: "\n", with: " ")
+                var truncatedText = item.displayText.replacingOccurrences(of: "\n", with: " ")
                 if truncatedText.count > previewLength {
                     truncatedText = String(truncatedText.prefix(previewLength)) + "..."
                 }
@@ -263,6 +266,7 @@ class SuperSniperApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
                         if text.isEmpty {
                             HUDManager.shared.showToastAtCursor(with: "No text found")
                         } else {
+                            ClipboardObserver.shared.ignoreNextChange()
                             NSPasteboard.general.clearContents()
                             NSPasteboard.general.setString(text, forType: .string)
                             HistoryManager.shared.addEntry(text: text)
