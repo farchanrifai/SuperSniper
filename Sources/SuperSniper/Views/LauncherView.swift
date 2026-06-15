@@ -129,8 +129,8 @@ struct LauncherView: View {
                 .opacity(isCompact ? 0 : 1)
                 .clipped()
             }
-            // Use .popover material to match Light/Dark mode gracefully like Spotlight
-            .background(VisualEffectView(material: .popover, blendingMode: .behindWindow))
+            // Use .windowBackground material to tie into the macOS 27 Liquid Glass slider
+            .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow))
             .clipShape(RoundedRectangle(cornerRadius: isCompact ? 32 : 16, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: isCompact ? 32 : 16, style: .continuous)
